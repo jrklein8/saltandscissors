@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Salt &amp; Scissors Creative Co. — Green Theme · Coastal. Creative. Curated.</title>
+<meta name="description" content="Curated craft experiences for kids and adults — Coastal Creamery sensory sundaes, charm bar, canvas & patch parties. Parties, pop-ups and workshops in Wilmington, NC + beyond." />
+<link rel="icon" href="assets/img/logo-full.png?v=2" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,500;1,9..144,600&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --slate:#536665; --white:#FEFFFF; --clay:#C17E63; --sand:#DBAF76;
+    --mauve:#C79FC7; --sage:#A6BFB4; --terra:#B26C4B;
+    --ink:#394645; --ink-soft:#5c6b6a;
+    --paper:#FBF6EF; --paper-2:#F5EDE1;
+    --shadow:83,102,101;
+    --disp:"Fraunces",Georgia,serif;
+    --body:"Nunito",-apple-system,"Segoe UI",sans-serif;
+    --hand:"Caveat",cursive;
+    --maxw:1160px;
+    --r-lg:26px; --r-md:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  body{
+    font-family:var(--body);color:var(--ink);background:var(--paper);
+    line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--mauve);color:#fff}
+  ::-webkit-scrollbar{width:12px}
+  ::-webkit-scrollbar-track{background:var(--paper-2)}
+  ::-webkit-scrollbar-thumb{background:var(--sage);border-radius:99px;border:3px solid var(--paper-2)}
+
+  /* paper grain over everything */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:2000;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+
+  h1,h2,h3{font-family:var(--disp);color:var(--slate);line-height:1.06;font-weight:600;letter-spacing:-.015em}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  section{padding:clamp(4.5rem,9vw,8rem) 0;position:relative}
+  .wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 clamp(1.25rem,4vw,2.5rem)}
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:.6rem;
+    text-transform:uppercase;letter-spacing:.24em;font-size:.72rem;font-weight:800;color:var(--terra);margin-bottom:1.1rem;
+  }
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--terra);border-radius:2px}
+  .lead{font-size:clamp(1.02rem,1.5vw,1.16rem);color:var(--ink-soft);max-width:58ch}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:.55rem;font-weight:800;font-size:.98rem;
+    padding:1rem 2rem;border-radius:999px;cursor:pointer;border:none;font-family:var(--body);
+    transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s, background .22s;
+  }
+  .btn-primary{background:var(--terra);color:#fff;box-shadow:0 14px 28px -12px var(--terra)}
+  .btn-primary:hover{transform:translateY(-3px) rotate(-1deg);box-shadow:0 20px 36px -14px var(--terra)}
+  .btn-ghost{background:transparent;color:var(--slate);box-shadow:inset 0 0 0 2px var(--slate)}
+  .btn-ghost:hover{background:var(--slate);color:#fff;transform:translateY(-3px) rotate(1deg)}
+
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .8s ease,transform .8s cubic-bezier(.22,.9,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+
+  /* ============ NAV ============ */
+  .nav{position:fixed;top:14px;left:0;right:0;z-index:100;display:flex;justify-content:center;padding:0 1rem;transition:top .3s}
+  .nav-pill{
+    display:flex;align-items:center;gap:1.6rem;max-width:var(--maxw);width:100%;
+    background:rgba(254,255,255,.75);backdrop-filter:blur(14px);
+    border:1px solid rgba(var(--shadow),.12);border-radius:999px;
+    padding:.5rem .6rem .5rem 1.4rem;box-shadow:0 12px 34px -18px rgba(var(--shadow),.5);
+    transition:box-shadow .3s;
+  }
+  .nav.scrolled .nav-pill{box-shadow:0 16px 40px -16px rgba(var(--shadow),.6)}
+  .nav .brand img{height:44px;width:auto}
+  .nav-links{display:flex;gap:1.5rem;margin-left:auto;align-items:center}
+  .nav-links a{font-weight:800;font-size:.92rem;color:var(--slate);opacity:.75;position:relative;padding:.3rem 0;transition:opacity .2s}
+  .nav-links a:hover,.nav-links a.active{opacity:1}
+  .nav-links a:not(.btn)::after{
+    content:"";position:absolute;left:0;right:100%;bottom:0;height:3px;border-radius:3px;background:var(--sand);transition:right .3s;
+  }
+  .nav-links a:not(.btn):hover::after,.nav-links a.active:not(.btn)::after{right:0}
+  .nav-links .btn{padding:.72rem 1.5rem}
+  .nav-burger{display:none;margin-left:auto;background:none;border:none;color:var(--slate);cursor:pointer;padding:.4rem}
+  @media(max-width:920px){
+    .nav-links{
+      position:fixed;inset:78px 1rem auto;flex-direction:column;align-items:stretch;text-align:center;gap:.4rem;
+      background:rgba(254,255,255,.97);backdrop-filter:blur(14px);border:1px solid rgba(var(--shadow),.12);
+      border-radius:24px;padding:1.2rem;box-shadow:0 30px 60px -20px rgba(var(--shadow),.55);
+      opacity:0;pointer-events:none;transform:translateY(-12px) scale(.98);transition:.3s;
+    }
+    .nav-links.open{opacity:1;pointer-events:auto;transform:none}
+    .nav-links a{padding:.55rem}
+    .nav-pill{justify-content:center;position:relative;padding:.45rem 3.2rem}
+    .nav .brand img{height:58px}
+    .nav-burger{display:block;position:absolute;right:.9rem;top:50%;transform:translateY(-50%);margin-left:0}
+  }
+
+  /* ============ HERO ============ */
+  .hero{padding-top:clamp(6.5rem,12vw,8.5rem);overflow:hidden}
+  .masthead{display:block;margin:0 auto clamp(2rem,4.5vw,3.2rem);height:clamp(120px,15vw,185px);width:auto;position:relative;z-index:2}
+  .hero::before{content:"";position:absolute;top:-220px;right:-180px;width:620px;height:620px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, rgba(199,159,199,.35), transparent 65%)}
+  .hero::after{content:"";position:absolute;bottom:-160px;left:-140px;width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(circle at 60% 40%, rgba(166,191,180,.4), transparent 65%)}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(2.5rem,5vw,4rem);align-items:center;position:relative;z-index:2}
+  @media(max-width:900px){.hero-grid{grid-template-columns:1fr;text-align:center}}
+  .hero h1{font-size:clamp(2.7rem,6vw,4.7rem)}
+  .hero h1 .fancy{font-style:italic;font-weight:500;color:var(--terra);position:relative;white-space:nowrap}
+  .hero h1 .fancy svg{position:absolute;left:0;right:0;bottom:-.18em;width:100%;height:.28em;overflow:visible}
+  .hero h1 .fancy svg path{stroke:var(--sand);stroke-width:5;fill:none;stroke-linecap:round;
+    stroke-dasharray:600;stroke-dashoffset:600;animation:draw 1.4s .5s ease forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .hero .lead{margin:1.4rem 0 2.2rem}
+  @media(max-width:900px){.hero .lead{margin-inline:auto}}
+  .hero-cta{display:flex;gap:1rem;flex-wrap:wrap}
+  @media(max-width:900px){.hero-cta{justify-content:center}}
+  .proof{display:flex;align-items:center;gap:.9rem;margin-top:2.2rem}
+  @media(max-width:900px){.proof{justify-content:center}}
+  .avatars{display:flex}
+  .avatars span{width:42px;height:42px;border-radius:50%;border:3px solid var(--paper);background-size:cover;background-position:center;margin-left:-12px}
+  .avatars span:first-child{margin-left:0}
+  .proof b{color:var(--slate)}
+  .proof small{display:block;color:var(--ink-soft);font-size:.82rem}
+  .proof .stars{color:var(--sand);letter-spacing:.1em}
+
+  /* polaroid collage */
+  .collage{position:relative;aspect-ratio:1/1.05;max-width:540px;margin-inline:auto;width:100%}
+  .polaroid{
+    position:absolute;background:#fff;padding:10px 10px 42px;border-radius:6px;
+    box-shadow:0 24px 50px -22px rgba(var(--shadow),.55);
+    transition:transform .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  .polaroid img{width:100%;height:100%;object-fit:cover;border-radius:3px}
+  .polaroid figcaption{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-family:var(--hand);font-size:1.25rem;color:var(--ink-soft)}
+  .polaroid::before{ /* tape */
+    content:"";position:absolute;top:-14px;left:50%;transform:translateX(-50%) rotate(-3deg);
+    width:96px;height:28px;background:rgba(219,175,118,.5);border-left:1px dashed rgba(255,255,255,.7);border-right:1px dashed rgba(255,255,255,.7);
+  }
+  .p1{width:62%;top:4%;left:2%;transform:rotate(-5deg);z-index:2}
+  .p2{width:46%;top:0;right:0;transform:rotate(4deg)}
+  .p3{width:52%;bottom:2%;right:6%;transform:rotate(-2deg);z-index:3}
+  .collage:hover .p1{transform:rotate(-7deg) translateY(-8px)}
+  .collage:hover .p2{transform:rotate(6deg) translate(6px,-4px)}
+  .collage:hover .p3{transform:rotate(-4deg) translateY(6px)}
+  .p1 .ph{aspect-ratio:1/1}.p2 .ph{aspect-ratio:3/4}.p3 .ph{aspect-ratio:4/3}
+  .ph{overflow:hidden;border-radius:3px}
+
+  .sticker{
+    position:absolute;left:-4%;bottom:14%;width:128px;height:128px;z-index:4;
+    animation:spin 22s linear infinite;filter:drop-shadow(0 10px 18px rgba(var(--shadow),.35));
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sticker text{font-family:var(--body);font-weight:800;font-size:12.5px;letter-spacing:.22em;fill:var(--paper);text-transform:uppercase}
+  .sticker .disc{fill:var(--terra)}
+  .sticker .mid{fill:var(--paper);font-family:var(--disp);font-size:30px;font-style:italic}
+  @media(max-width:520px){.sticker{width:100px;height:100px;left:-2%}}
+
+  /* ============ MARQUEE ============ */
+  .marquee{background:var(--slate);padding:1.05rem 0;overflow:hidden;white-space:nowrap;transform:rotate(-1deg) scale(1.02);margin:1rem 0}
+  .marquee-track{display:inline-flex;gap:2.6rem;animation:scroll 30s linear infinite;color:var(--sand);font-family:var(--disp);font-style:italic;font-size:1.12rem}
+  .marquee-track span{display:inline-flex;align-items:center;gap:2.6rem}
+  .marquee-track span::after{content:"✦";color:var(--mauve)}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* ============ EXPERIENCE ROWS ============ */
+  .exp-row{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2.5rem,6vw,5rem);align-items:center;padding:clamp(2.5rem,5vw,4rem) 0}
+  .exp-row+.exp-row{border-top:2px dashed rgba(var(--shadow),.18)}
+  @media(max-width:860px){.exp-row{grid-template-columns:1fr}}
+  .exp-row:nth-child(even) .exp-media{order:2}
+  @media(max-width:860px){.exp-row:nth-child(even) .exp-media{order:0}}
+  .exp-num{font-family:var(--disp);font-style:italic;color:var(--sand);font-size:1.05rem;letter-spacing:.08em}
+  .exp-row h3{font-size:clamp(1.9rem,3.4vw,2.7rem);margin:.3rem 0 .9rem}
+  .exp-row p{color:var(--ink-soft);max-width:52ch}
+  .chips{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.3rem}
+  .chip{font-size:.8rem;font-weight:800;padding:.42rem 1rem;border-radius:999px;background:#fff;border:1.5px solid rgba(var(--shadow),.16);color:var(--slate)}
+  .chip.hl{background:var(--sage);border-color:transparent;color:#2e3c3a}
+  .ages{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.4rem;font-family:var(--hand);font-size:1.35rem;color:var(--terra)}
+
+  .also-head{text-align:center;margin-top:3.5rem;font-family:var(--hand);font-size:1.6rem;color:var(--terra);transform:rotate(-1deg)}
+  .more{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:1.4rem}
+  @media(max-width:820px){.more{grid-template-columns:1fr;max-width:460px;margin-inline:auto;margin-top:1.4rem}}
+  .more-card{background:#fff;border:1px solid rgba(var(--shadow),.1);border-radius:var(--r-md);padding:1.6rem 1.5rem;box-shadow:0 14px 32px -26px rgba(var(--shadow),.5);display:flex;gap:1rem;align-items:flex-start;transition:transform .3s}
+  .more-card:hover{transform:translateY(-4px) rotate(-.5deg)}
+  .more-card .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;flex:none}
+  .more-card h4{font-family:var(--disp);color:var(--slate);font-size:1.15rem;margin-bottom:.2rem}
+  .more-card p{font-size:.9rem;color:var(--ink-soft)}
+
+  .stack{position:relative;aspect-ratio:4/4.6;max-width:440px;margin-inline:auto;width:100%}
+  .stack img{
+    position:absolute;width:78%;height:82%;object-fit:cover;border-radius:10px;border:7px solid #fff;
+    box-shadow:0 22px 44px -20px rgba(var(--shadow),.5);transition:transform .55s cubic-bezier(.34,1.56,.64,1);
+  }
+  .stack img:nth-child(1){top:2%;left:0;transform:rotate(-7deg);z-index:1}
+  .stack img:nth-child(2){top:8%;right:0;transform:rotate(5deg);z-index:2}
+  .stack img:nth-child(3){bottom:0;left:10%;transform:rotate(-2deg);z-index:3}
+  .stack:hover img:nth-child(1){transform:rotate(-11deg) translate(-14px,-6px)}
+  .stack:hover img:nth-child(2){transform:rotate(9deg) translate(14px,-8px)}
+  .stack:hover img:nth-child(3){transform:rotate(-3deg) translateY(10px) scale(1.03)}
+  .stack.two img:nth-child(1){top:4%;left:2%;transform:rotate(-6deg)}
+  .stack.two img:nth-child(2){bottom:2%;right:2%;top:auto;transform:rotate(4deg)}
+  .stack.two:hover img:nth-child(1){transform:rotate(-9deg) translate(-12px,-8px)}
+  .stack.two:hover img:nth-child(2){transform:rotate(7deg) translate(12px,8px)}
+
+  /* wave divider */
+  .wave{display:block;width:100%;height:64px;margin-bottom:-1px}
+
+  /* ============ HOW ============ */
+  .how{background:var(--paper-2)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1.6rem,4vw,3rem);position:relative;margin-top:1rem}
+  @media(max-width:780px){.steps{grid-template-columns:1fr;max-width:440px;margin-inline:auto}}
+  .steps::before{
+    content:"";position:absolute;top:34px;left:12%;right:12%;height:0;
+    border-top:3px dashed rgba(var(--shadow),.3);
+  }
+  @media(max-width:780px){.steps::before{display:none}}
+  .step{text-align:center;position:relative}
+  .seal{
+    width:68px;height:68px;border-radius:50%;margin:0 auto 1.1rem;display:grid;place-items:center;
+    font-family:var(--disp);font-style:italic;font-size:1.5rem;color:#fff;position:relative;z-index:2;
+    box-shadow:0 12px 24px -10px rgba(var(--shadow),.5), inset 0 -4px 8px rgba(0,0,0,.12);
+  }
+  .step:nth-child(1) .seal{background:var(--clay);transform:rotate(-6deg)}
+  .step:nth-child(2) .seal{background:var(--mauve);transform:rotate(3deg)}
+  .step:nth-child(3) .seal{background:var(--sage);transform:rotate(-2deg);color:#2e3c3a}
+  .step h3{font-size:1.35rem;margin-bottom:.5rem}
+  .step p{color:var(--ink-soft);font-size:.96rem;max-width:30ch;margin-inline:auto}
+
+  /* ============ ABOUT ============ */
+  .about-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(2.5rem,6vw,5rem);align-items:center}
+  @media(max-width:860px){.about-grid{grid-template-columns:1fr}}
+  .about-grid h2{font-size:clamp(2rem,4vw,3rem);margin-bottom:1rem}
+  .founder-quote{
+    margin-top:1.6rem;padding:1.4rem 1.6rem;background:#fff;border-radius:var(--r-md);
+    border-left:5px solid var(--sand);box-shadow:0 16px 36px -26px rgba(var(--shadow),.5);
+  }
+  .founder-quote p{font-family:var(--disp);font-style:italic;font-size:1.12rem;color:var(--slate)}
+  .founder-quote .sig{font-family:var(--hand);font-size:1.7rem;color:var(--terra);margin-top:.5rem;display:block;transform:rotate(-2deg)}
+  .about-media{position:relative;max-width:420px;margin-inline:auto;width:100%}
+  .about-media .polaroid{position:relative;width:88%;transform:rotate(-3deg)}
+  .about-media .polaroid.back{position:absolute;top:6%;right:-4%;width:70%;transform:rotate(5deg);z-index:-1;opacity:.9}
+  .about-media:hover .polaroid{transform:rotate(-1deg)}
+  .about-media:hover .polaroid.back{transform:rotate(8deg)}
+
+  /* ============ GALLERY ============ */
+  .filters{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:2.2rem}
+  .fbtn{
+    font-family:var(--body);font-weight:800;font-size:.88rem;padding:.6rem 1.4rem;border-radius:999px;cursor:pointer;
+    background:#fff;border:1.5px solid rgba(var(--shadow),.16);color:var(--slate);transition:.25s;
+  }
+  .fbtn:hover{transform:translateY(-2px)}
+  .fbtn.on{background:var(--slate);color:#fff;border-color:var(--slate)}
+  .masonry{columns:3;column-gap:1rem}
+  @media(max-width:820px){.masonry{columns:2}}
+  @media(max-width:480px){.masonry{columns:1}}
+  .masonry figure{
+    break-inside:avoid;margin:0 0 1rem;border-radius:14px;overflow:hidden;cursor:zoom-in;position:relative;
+    box-shadow:0 16px 34px -26px rgba(var(--shadow),.55);transition:transform .3s, opacity .3s;
+  }
+  .masonry figure.hide{display:none}
+  .masonry img{width:100%;transition:transform .6s ease}
+  .masonry figure:hover img{transform:scale(1.06)}
+  .masonry figure::after{
+    content:attr(data-label);position:absolute;left:10px;bottom:10px;font-family:var(--hand);font-size:1.2rem;color:#fff;
+    text-shadow:0 2px 8px rgba(0,0,0,.55);opacity:0;transition:opacity .3s;
+  }
+  .masonry figure:hover::after{opacity:1}
+
+  .lightbox{position:fixed;inset:0;z-index:300;background:rgba(46,56,55,.93);display:none;align-items:center;justify-content:center;padding:2rem}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:90vw;max-height:86vh;border-radius:10px;box-shadow:0 40px 90px rgba(0,0,0,.5)}
+  .lb-x,.lb-prev,.lb-next{position:absolute;color:#fff;background:rgba(255,255,255,.12);border:none;cursor:pointer;border-radius:50%;width:52px;height:52px;display:grid;place-items:center;font-size:1.5rem;transition:background .2s}
+  .lb-x:hover,.lb-prev:hover,.lb-next:hover{background:rgba(255,255,255,.25)}
+  .lb-x{top:1.2rem;right:1.4rem}
+  .lb-prev{left:1.2rem;top:50%;transform:translateY(-50%)}
+  .lb-next{right:1.2rem;top:50%;transform:translateY(-50%)}
+
+  /* ============ PACKAGES ============ */
+  .pack-note{display:inline-block;font-family:var(--hand);font-size:1.3rem;color:var(--terra);transform:rotate(-2deg);margin-bottom:1rem}
+  .packs{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem;align-items:stretch}
+  @media(max-width:880px){.packs{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
+  .pack{
+    background:#fff;border-radius:var(--r-lg);padding:2.2rem 2rem;position:relative;
+    border:1px solid rgba(var(--shadow),.1);box-shadow:0 20px 44px -30px rgba(var(--shadow),.55);
+    display:flex;flex-direction:column;transition:transform .3s;
+  }
+  .pack:hover{transform:translateY(-6px)}
+  .pack h3{font-size:1.5rem}
+  .pack .for{font-family:var(--hand);font-size:1.25rem;color:var(--clay);margin:.15rem 0 1rem}
+  .pack .price{font-family:var(--disp);font-size:2.4rem;color:var(--slate)}
+  .pack .price small{font-family:var(--body);font-size:.85rem;color:var(--ink-soft);font-weight:700}
+  .pack ul{list-style:none;margin:1.3rem 0 1.8rem;display:grid;gap:.6rem;font-size:.94rem}
+  .pack li{display:flex;gap:.6rem;align-items:flex-start;color:var(--ink-soft);font-weight:600}
+  .pack li::before{content:"✓";color:var(--terra);font-weight:800}
+  .pack .btn{margin-top:auto;justify-content:center}
+  .pack.feat{background:var(--slate);border-color:var(--slate)}
+  .pack.feat h3,.pack.feat .price{color:#fff}
+  .pack.feat .for{color:var(--sand)}
+  .pack.feat li{color:rgba(254,255,255,.85)}
+  .pack.feat li::before{color:var(--sand)}
+  .pack .ribbon{
+    position:absolute;top:-15px;left:50%;transform:translateX(-50%) rotate(-2deg);
+    background:var(--sand);color:#513a1e;font-weight:800;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+    padding:.4rem 1.2rem;border-radius:999px;box-shadow:0 8px 18px -8px rgba(0,0,0,.3);
+  }
+
+  /* ============ NOTES (testimonials) ============ */
+  .notes{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8rem}
+  @media(max-width:860px){.notes{grid-template-columns:1fr;max-width:440px;margin-inline:auto}}
+  .note{
+    padding:2rem 1.7rem 1.7rem;border-radius:4px;position:relative;
+    box-shadow:0 18px 38px -22px rgba(var(--shadow),.55);
+    font-family:var(--hand);font-size:1.45rem;line-height:1.4;color:#41504e;
+    transition:transform .3s;
+  }
+  .note:hover{transform:scale(1.03) rotate(0deg)!important}
+  .note::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(2deg);width:110px;height:30px;background:rgba(254,255,255,.55);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  .note .stars{font-size:1rem;letter-spacing:.18em;color:var(--terra);display:block;margin-bottom:.5rem}
+  .note .who{display:block;margin-top:1rem;font-family:var(--body);font-weight:800;font-size:.85rem;color:var(--slate)}
+  .n1{background:#F3E3C8;transform:rotate(-2deg)}
+  .n2{background:#EADFF0;transform:rotate(1.5deg)}
+  .n3{background:#DCE9E2;transform:rotate(-1deg)}
+
+  /* ============ FAQ ============ */
+  .faq{max-width:760px;margin-inline:auto}
+  .faq details{
+    background:#fff;border:1px solid rgba(var(--shadow),.1);border-radius:var(--r-md);
+    margin-bottom:.9rem;box-shadow:0 12px 28px -24px rgba(var(--shadow),.5);overflow:hidden;
+  }
+  .faq summary{
+    cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:1rem;
+    padding:1.15rem 1.4rem;font-weight:800;color:var(--slate);font-size:1.02rem;
+  }
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:"+";font-family:var(--disp);font-size:1.5rem;color:var(--terra);transition:transform .3s;flex:none}
+  .faq details[open] summary::after{transform:rotate(45deg)}
+  .faq .a{padding:0 1.4rem 1.3rem;color:var(--ink-soft);font-size:.97rem}
+
+  /* ============ BOOKING ============ */
+  .book-panel{
+    background:var(--slate);border-radius:clamp(26px,4vw,44px);padding:clamp(2.4rem,5vw,4.2rem);
+    position:relative;overflow:hidden;color:#fff;
+  }
+  .book-panel::before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;top:-120px;right:-80px;background:radial-gradient(circle,rgba(199,159,199,.5),transparent 70%)}
+  .book-panel::after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;bottom:-120px;left:-60px;background:radial-gradient(circle,rgba(166,191,180,.45),transparent 70%)}
+  .book-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(2rem,5vw,3.5rem);position:relative;z-index:2}
+  @media(max-width:840px){.book-grid{grid-template-columns:1fr}}
+  .book-panel h2{color:#fff;font-size:clamp(2rem,4vw,3rem);margin-bottom:.8rem}
+  .book-panel .lead{color:rgba(254,255,255,.85)}
+  .contact-lines{display:grid;gap:1.2rem;margin-top:2rem}
+  .cline{display:flex;gap:.9rem;align-items:center}
+  .cline .ic{width:44px;height:44px;border-radius:13px;background:rgba(254,255,255,.12);display:grid;place-items:center;font-size:1.2rem;flex:none}
+  .cline b{display:block;font-size:.95rem}
+  .cline span{color:rgba(254,255,255,.75);font-size:.9rem}
+  form{display:grid;gap:1rem}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:520px){.frow{grid-template-columns:1fr}}
+  .field label{display:block;font-weight:800;font-size:.82rem;margin-bottom:.35rem;color:rgba(254,255,255,.9)}
+  .field input,.field select,.field textarea{
+    width:100%;padding:.9rem 1.05rem;border-radius:13px;border:1px solid rgba(254,255,255,.25);
+    background:rgba(254,255,255,.1);color:#fff;font-family:var(--body);font-size:.97rem;
+  }
+  .field ::placeholder{color:rgba(254,255,255,.5)}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--sand);border-color:transparent}
+  .field select option{color:var(--ink)}
+  form .btn{justify-self:start;background:var(--sand);color:#513a1e;box-shadow:0 14px 28px -14px rgba(0,0,0,.4)}
+  .fnote{font-size:.82rem;color:rgba(254,255,255,.7)}
+
+  /* ============ FOOTER ============ */
+  footer{background:var(--slate);margin-top:clamp(4rem,8vw,7rem);padding:4rem 0 2.5rem;text-align:center;color:rgba(254,255,255,.8);position:relative;overflow:hidden}
+  footer .foot-logo{height:130px;width:auto;margin:0 auto 1.2rem;position:relative;z-index:2}
+  footer .water{position:absolute;left:50%;bottom:-.25em;transform:translateX(-50%);font-family:var(--disp);font-style:italic;font-size:clamp(6rem,18vw,15rem);color:rgba(254,255,255,.05);white-space:nowrap;pointer-events:none}
+  .socials{display:flex;gap:1rem;justify-content:center;margin:1.6rem 0 1.2rem;position:relative;z-index:2}
+  .socials a{width:46px;height:46px;border-radius:50%;background:rgba(254,255,255,.1);border:1px solid rgba(254,255,255,.16);display:grid;place-items:center;color:#fff;transition:.25s}
+  .socials a:hover{transform:translateY(-4px) rotate(6deg);background:var(--sand);color:var(--slate)}
+  .tiny{font-size:.84rem;color:rgba(254,255,255,.55);position:relative;z-index:2}
+
+  .sec-head{text-align:center;max-width:64ch;margin:0 auto 3rem}
+  .sec-head h2{font-size:clamp(2.1rem,4.2vw,3.2rem);margin-bottom:.8rem}
+  .sec-head .lead{margin-inline:auto}
+
+  /* ============ GREEN THEME (client variant) ============ */
+  body{background:var(--slate);color:#F2ECE2}
+  ::-webkit-scrollbar-track{background:#465655}
+  ::-webkit-scrollbar-thumb{background:#394746;border-color:#465655}
+  .hero{padding-top:clamp(7.5rem,14vw,10rem)}
+  .hero h1,.sec-head h2,.about-grid h2,.exp-row h3,.step h3{color:#FBF6EF}
+  .lead{color:#E6E1D3}
+  .exp-row p{color:#E0DCCE}
+  .step p{color:#DDE2DC}
+  .eyebrow{color:var(--sand)}
+  .eyebrow::before{background:var(--sand)}
+  .hero h1 .fancy{color:var(--sand)}
+  .hero h1 .fancy svg path{stroke:var(--clay)}
+  .proof small{color:#D9DED6}
+  .ages,.also-head,.pack-note{color:var(--sand)}
+  .exp-row+.exp-row{border-top-color:rgba(251,246,239,.22)}
+  .steps::before{border-top-color:rgba(251,246,239,.28)}
+  .how{background:#485857}
+  .marquee{background:var(--sand)}
+  .marquee-track{color:var(--slate)}
+  .marquee-track span::after{color:var(--terra)}
+  .hero .btn-ghost{color:#FBF6EF;box-shadow:inset 0 0 0 2px #FBF6EF}
+  .hero .btn-ghost:hover{background:#FBF6EF;color:var(--slate)}
+  .fbtn.on{background:var(--sand);color:#513a1e;border-color:var(--sand)}
+  .pack.feat{background:#3f4e4d;border-color:#3f4e4d}
+  .book-panel{background:#3f4e4d}
+  footer{background:#3f4e4d}
+  .theme-switch{position:fixed;bottom:1.2rem;right:1.2rem;z-index:150;background:#FBF6EF;color:var(--slate);font-weight:800;font-size:.85rem;padding:.65rem 1.2rem;border-radius:999px;box-shadow:0 14px 30px -12px rgba(0,0,0,.45);transition:transform .2s}
+  .theme-switch:hover{transform:translateY(-2px)}
+</style>
+</head>
+<body id="top">
+
+<!-- NAV -->
+<div class="nav" id="nav">
+  <div class="nav-pill">
+    <a class="brand" href="#top"><img src="assets/img/logo-full.png?v=2" alt="Salt & Scissors Creative Company"/></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#experiences">Experiences</a>
+      <a href="#how">How It Works</a>
+      <a href="#about">About</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#packages">Packages</a>
+      <a href="#faq">FAQ</a>
+      <a href="#book" class="btn btn-primary">Book →</a>
+    </nav>
+    <button class="nav-burger" id="burger" aria-label="Menu">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Wilmington, NC + beyond · art experiences for all ages</span>
+      <h1>Big memories,<br/>made <span class="fancy">by hand<svg viewBox="0 0 220 14" preserveAspectRatio="none"><path d="M3 10 Q 22 3 41 9 T 79 9 T 117 9 T 155 9 T 193 9 T 217 9"/></svg></span></h1>
+      <p class="lead">From birthday parties to girls' nights, we roll up with the sundae slime, the charms and the sensory magic — set the table, host the fun (or prep it all for you to host), and pack up every last sprinkle.</p>
+      <div class="hero-cta">
+        <a href="#book" class="btn btn-primary">Book your event →</a>
+        <a href="#experiences" class="btn btn-ghost">Browse experiences</a>
+      </div>
+      <div class="proof">
+        <div class="avatars">
+          <span style="background-image:url(assets/img/charm-3.jpg)"></span>
+          <span style="background-image:url(assets/img/slime-2.jpg)"></span>
+          <span style="background-image:url(assets/img/sensory-2.jpg)"></span>
+        </div>
+        <div>
+          <b class="stars">★★★★★</b>
+          <small>Parties · Pop-Ups · Workshops — loved across the Cape Fear</small>
+        </div>
+      </div>
+    </div>
+    <div class="collage reveal">
+      <figure class="polaroid p1"><div class="ph"><img src="assets/img/charm-2.jpg" alt="Friends showing off their new charm bracelets"/></div><figcaption>bracelet crew ♡</figcaption></figure>
+      <figure class="polaroid p2"><div class="ph"><img src="assets/img/slime-1.jpg" alt="Coastal Creamery sensory sundae"/></div><figcaption>sundae slime!</figcaption></figure>
+      <figure class="polaroid p3"><div class="ph"><img src="assets/img/sensory-1.jpg" alt="Ocean Explorer sensory kit"/></div><figcaption>ocean explorers</figcaption></figure>
+      <svg class="sticker" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="disc" cx="60" cy="60" r="58"/>
+        <defs><path id="circlePath" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"/></defs>
+        <text><textPath href="#circlePath">Salt &amp; Scissors · Creative Co. · est 2026 ·</textPath></text>
+        <text class="mid" x="60" y="70" text-anchor="middle">✂</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Jars</span><span>Pop-Ups &amp; Workshops</span>
+    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Jars</span><span>Pop-Ups &amp; Workshops</span>
+  </div>
+</div>
+
+<!-- EXPERIENCES -->
+<section id="experiences">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">The menu</span>
+      <h2>Pick your party's main event</h2>
+      <p class="lead">Six signature experiences — fully stocked, beautifully styled, and hosted from first squish to final charm. Prefer to run the show yourself? We'll curate and prep everything for you to host.</p>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-media reveal">
+        <div class="stack">
+          <img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime mixing in progress"/>
+          <img src="assets/img/slime-8.jpg" loading="lazy" alt="Finished colorful slime"/>
+          <img src="assets/img/slime-1.jpg" loading="lazy" alt="Coastal Creamery sensory sundae with cherry"/>
+        </div>
+      </div>
+      <div class="reveal d1">
+        <div class="exp-num">No. 01 — the signature</div>
+        <h3>Coastal Creamery Sensory Sundaes</h3>
+        <p>Our showstopper. Guests build a custom slime or play-dough sundae — toppings, drizzles, sprinkles and mix-ins — then crown it with a cherry and carry it home in a real sundae cup. Equal parts science lab and ice cream shop.</p>
+        <div class="chips">
+          <span class="chip hl">Most popular</span>
+          <span class="chip">Slime or play dough</span>
+          <span class="chip">Toppings &amp; drizzle bar</span>
+          <span class="chip">Take-home sundae cup</span>
+        </div>
+        <span class="ages">✏ ages 4–12 (grown-ups sneak one too)</span>
+      </div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-media reveal">
+        <div class="stack">
+          <img src="assets/img/charm-4.jpg" loading="lazy" alt="Charm bracelet building"/>
+          <img src="assets/img/charm-7.jpg" loading="lazy" alt="Finished charm bracelet"/>
+          <img src="assets/img/charm-1.jpg" loading="lazy" alt="Charm bracelet on wrist"/>
+        </div>
+      </div>
+      <div class="reveal d1">
+        <div class="exp-num">No. 02 — endless customization</div>
+        <h3>The Charm Bar Experience</h3>
+        <p>A fully hosted jewelry counter with curated charms, chains and letters — endless customization for one-of-a-kind keepsakes guests actually wear past the weekend. Matching BFF sets strongly encouraged.</p>
+        <div class="chips">
+          <span class="chip hl">Keepsake favor</span>
+          <span class="chip">Curated charm wall</span>
+          <span class="chip">Sized on the spot</span>
+          <span class="chip">Girls' night favorite</span>
+        </div>
+        <span class="ages">✏ ages 5 to 95 — birthdays, showers &amp; girls' nights</span>
+      </div>
+    </div>
+
+    <div class="exp-row">
+      <div class="exp-media reveal">
+        <div class="stack two">
+          <img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean Explorer kit with beach sand and shells"/>
+          <img src="assets/img/sensory-2.jpg" loading="lazy" alt="Sensory play dough jars"/>
+        </div>
+      </div>
+      <div class="reveal d1">
+        <div class="exp-num">No. 03 — for the littles</div>
+        <h3>The Sensory Jar Station</h3>
+        <p>Kinetic sand or play dough build stations, themed to your event — think ocean explorers with real beach sand, shells and tiny sea creatures. Fully hosted, endlessly squishable, mess handled.</p>
+        <div class="chips">
+          <span class="chip hl">Little-kid favorite</span>
+          <span class="chip">Kinetic sand or play dough</span>
+          <span class="chip">Themed to your party</span>
+        </div>
+        <span class="ages">✏ perfect for ages 2–8</span>
+      </div>
+    </div>
+
+    <div class="also-head">— also on the menu —</div>
+    <div class="more">
+      <div class="more-card reveal"><div class="ic" style="background:rgba(199,159,199,.25)">🎨</div><div><h4>Canvas Painting Party</h4><p>Mini canvas party customized to your theme — all supplies, setup, guidance &amp; cleanup included.</p></div></div>
+      <div class="more-card reveal d1"><div class="ic" style="background:rgba(219,175,118,.28)">🧢</div><div><h4>DIY Patch Party</h4><p>Guests customize hats &amp; accessories with fun patches. Fully hosted with materials &amp; cleanup.</p></div></div>
+      <div class="more-card reveal d2"><div class="ic" style="background:rgba(166,191,180,.28)">✨</div><div><h4>Custom Craft Experience</h4><p>Have a theme in mind? Rebecca will design a fully hosted craft experience just for your event.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#485857"/></svg>
+<section class="how" id="how" style="padding-top:3rem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">Zero-stress promise</span>
+      <h2>You host the party.<br/>We handle the magic.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="seal">1</div><h3>Tell us the plan</h3><p>Date, headcount, ages, theme. We'll match the perfect station in one quick reply.</p></div>
+      <div class="step reveal d1"><div class="seal">2</div><h3>We arrive &amp; style</h3><p>Full setup before guests land — table, decor, supplies, and a host who runs the show.</p></div>
+      <div class="step reveal d2"><div class="seal">3</div><h3>Kids make &amp; keep</h3><p>Every guest leaves with a creation. We leave with the mess. That's the whole deal.</p></div>
+    </div>
+  </div>
+</section>
+<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true" style="transform:scaleY(-1);background:#485857"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#536665"/></svg>
+
+<!-- ABOUT -->
+<section id="about" style="padding-top:3rem">
+  <div class="wrap about-grid">
+    <div class="reveal">
+      <span class="eyebrow">About us</span>
+      <h2>Hi, I'm Rebecca —<br/>founder &amp; chief creative.</h2>
+      <p class="lead">I'm a mom who has always loved crafting and exploring new creative projects. Salt &amp; Scissors was born from that joy — beautifully styled craft experiences for kids and adults alike, at parties, pop-ups and workshops across Wilmington and beyond. Whether I'm there guiding the celebration or thoughtfully prepping everything for you to host, every detail is curated to feel intentional, creative, and completely stress-free.</p>
+      <div class="founder-quote">
+        <p>"Watching my own kids light up while making something with their hands is the heart and soul behind this business."</p>
+        <span class="sig">— Rebecca ✂ Coastal. Creative. Curated.</span>
+      </div>
+    </div>
+    <div class="about-media reveal d1">
+      <figure class="polaroid back"><div class="ph" style="aspect-ratio:3/4"><img src="assets/img/owner-2.jpg" loading="lazy" alt="Event booth"/></div></figure>
+      <figure class="polaroid"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/owner-1.jpg" loading="lazy" alt="Founder at the Salt & Scissors booth"/></div><figcaption>market day! ♡</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery" style="background:linear-gradient(180deg,rgba(199,159,199,.1),transparent)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">The fun in action</span>
+      <h2>Proof it's as fun as it looks</h2>
+    </div>
+    <div class="filters reveal">
+      <button class="fbtn on" data-f="all">All</button>
+      <button class="fbtn" data-f="slime">Sensory Sundaes</button>
+      <button class="fbtn" data-f="charm">Charm Bar</button>
+      <button class="fbtn" data-f="sensory">Sensory Jars</button>
+    </div>
+    <div class="masonry reveal" id="masonry">
+      <figure data-cat="slime" data-label="sundae slime"><img src="assets/img/slime-1.jpg" loading="lazy" alt="Sensory sundae slime"/></figure>
+      <figure data-cat="charm" data-label="charm bar"><img src="assets/img/charm-5.jpg" loading="lazy" alt="Charm bracelet close up"/></figure>
+      <figure data-cat="sensory" data-label="ocean explorer"><img src="assets/img/sensory-2.jpg" loading="lazy" alt="Sensory play jars"/></figure>
+      <figure data-cat="slime" data-label="slime magic"><img src="assets/img/slime-8.jpg" loading="lazy" alt="Colorful slime"/></figure>
+      <figure data-cat="charm" data-label="bff bracelets"><img src="assets/img/charm-7.jpg" loading="lazy" alt="Finished charm bracelet"/></figure>
+      <figure data-cat="slime" data-label="mix-ins"><img src="assets/img/slime-3.jpg" loading="lazy" alt="Slime toppings"/></figure>
+      <figure data-cat="charm" data-label="the workshop"><img src="assets/img/charm-4.jpg" loading="lazy" alt="Bracelet making"/></figure>
+      <figure data-cat="slime" data-label="fresh batch"><img src="assets/img/slime-6.jpg" loading="lazy" alt="Slime creation"/></figure>
+      <figure data-cat="sensory" data-label="beach in a jar"><img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean explorer kit"/></figure>
+      <figure data-cat="slime" data-label="cherry on top"><img src="assets/img/slime-9.jpg" loading="lazy" alt="Slime sundae"/></figure>
+      <figure data-cat="charm" data-label="every charm"><img src="assets/img/charm-3.jpg" loading="lazy" alt="Charm supplies"/></figure>
+      <figure data-cat="slime" data-label="squish tested"><img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime play"/></figure>
+    </div>
+  </div>
+</section>
+
+<!-- PACKAGES -->
+<section id="packages">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">Simple pricing</span>
+      <h2>Packages for every party size</h2>
+      <span class="pack-note">↓ sample pricing — we'll drop in your real rates!</span>
+    </div>
+    <div class="packs">
+      <div class="pack reveal">
+        <h3>The Mini</h3>
+        <div class="for">small &amp; sweet playdates</div>
+        <div class="price">$195 <small>· up to 8 guests</small></div>
+        <ul>
+          <li>1 signature station</li>
+          <li>60 minutes hosted</li>
+          <li>All supplies + take-homes</li>
+          <li>Setup &amp; full cleanup</li>
+        </ul>
+        <a href="#book" class="btn btn-ghost">Choose Mini</a>
+      </div>
+      <div class="pack feat reveal d1">
+        <div class="ribbon">Most booked</div>
+        <h3>The Classic</h3>
+        <div class="for">the birthday sweet spot</div>
+        <div class="price">$325 <small>· up to 15 guests</small></div>
+        <ul>
+          <li>1 station + favor add-on</li>
+          <li>90 minutes hosted</li>
+          <li>Themed table styling</li>
+          <li>Setup &amp; full cleanup</li>
+          <li>Guest of honor's VIP kit</li>
+        </ul>
+        <a href="#book" class="btn btn-primary" style="background:var(--sand);color:#513a1e">Choose Classic</a>
+      </div>
+      <div class="pack reveal d2">
+        <h3>The Whole Shebang</h3>
+        <div class="for">schools, pop-ups &amp; big bashes</div>
+        <div class="price">Custom <small>· 20+ guests</small></div>
+        <ul>
+          <li>Multiple stations, mix &amp; match</li>
+          <li>Flexible hours &amp; extra hosts</li>
+          <li>High-volume favor pricing</li>
+          <li>Schools, markets &amp; pop-ups</li>
+        </ul>
+        <a href="#book" class="btn btn-ghost">Get a quote</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NOTES -->
+<section id="reviews" style="background:linear-gradient(180deg,rgba(166,191,180,.14),transparent)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">Kind words</span>
+      <h2>Straight from the fridge door</h2>
+    </div>
+    <div class="notes">
+      <div class="note n1 reveal"><span class="stars">★★★★★</span>"The slime bar was the hit of the whole party — my daughter is STILL talking about it a month later!"<span class="who">— Megan R., birthday mom</span></div>
+      <div class="note n2 reveal d1"><span class="stars">★★★★★</span>"Truly turnkey. They ran the charm station like pros and left our house cleaner than they found it."<span class="who">— Danielle P., host mom</span></div>
+      <div class="note n3 reveal d2"><span class="stars">★★★★★</span>"60 kids made bracelets at our school fair without a single dull moment. Wonderful humans."<span class="who">— Ms. Alvarez, PTA coordinator</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="padding-top:2rem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" style="justify-content:center">Good questions</span>
+      <h2>Before you ask —</h2>
+    </div>
+    <div class="faq reveal">
+      <details open>
+        <summary>How messy does it actually get?</summary>
+        <div class="a">Managed-messy! We bring table coverings, smocks-optional vibes, wipes and a full teardown. The fun stays on the table — your floors and our conscience stay clean.</div>
+      </details>
+      <details>
+        <summary>Is this just for kids?</summary>
+        <div class="a">Not even close. Sensory sundaes shine for ages 4–12 and sensory jars for 2–8, but the charm bar and canvas parties are grown-up favorites — girls' nights, showers, team events. Tell us your crowd and we'll tune it to fit.</div>
+      </details>
+      <details>
+        <summary>Can you prep it for me to host?</summary>
+        <div class="a">Yes! Choose fully hosted (we run the whole activity) or curated-to-host — we prep, style and deliver everything with easy instructions, and you lead the fun.</div>
+      </details>
+      <details>
+        <summary>How much space do you need?</summary>
+        <div class="a">One or two standard tables' worth — indoors or out. We've set up in dining rooms, garages, backyards, gyms and park pavilions. We bring everything else.</div>
+      </details>
+      <details>
+        <summary>How far will you travel?</summary>
+        <div class="a">We serve Wilmington and the greater Cape Fear region. A little farther out? Ask — a small travel fee usually covers it.</div>
+      </details>
+      <details>
+        <summary>How do I lock in a date?</summary>
+        <div class="a">Send the booking form below and we'll confirm availability within one business day. A small deposit holds your date; the rest is due day-of.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING -->
+<section id="book" style="padding-top:2rem">
+  <div class="wrap">
+    <div class="book-panel reveal">
+      <div class="book-grid">
+        <div>
+          <span class="eyebrow" style="color:var(--sand)">Let's plan something fun</span>
+          <h2>Grab your date</h2>
+          <p class="lead">Tell us about your celebration — we'll reply within one business day with availability and a custom quote.</p>
+          <div class="contact-lines">
+            <div class="cline"><div class="ic">📸</div><div><b>DM to book</b><span><a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" style="text-decoration:underline">@saltandscissors</a> on Instagram</span></div></div>
+            <div class="cline"><div class="ic">✉️</div><div><b>Email</b><span>hello@saltandscissorsco.com</span></div></div>
+            <div class="cline"><div class="ic">📍</div><div><b>Serving</b><span>Wilmington, NC + beyond</span></div></div>
+          </div>
+        </div>
+        <form onsubmit="handleSubmit(event)">
+          <div class="frow">
+            <div class="field"><label for="name">Your name</label><input id="name" type="text" placeholder="Jane Doe" required/></div>
+            <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@email.com" required/></div>
+          </div>
+          <div class="frow">
+            <div class="field"><label for="date">Event date</label><input id="date" type="date" required/></div>
+            <div class="field"><label for="exp">Experience</label>
+              <select id="exp">
+                <option>Coastal Creamery Sensory Sundaes</option><option>Charm Bar Experience</option><option>Sensory Jar Station</option>
+                <option>Canvas Painting Party</option><option>DIY Patch Party</option><option>Custom Craft Experience</option>
+                <option>Help me pick!</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="field"><label for="kids"># of kids</label><input id="kids" type="number" min="1" placeholder="12"/></div>
+            <div class="field"><label for="occ">Occasion</label><input id="occ" type="text" placeholder="Birthday, girls' night, shower…"/></div>
+          </div>
+          <div class="field"><label for="msg">Tell us more</label><textarea id="msg" rows="3" placeholder="Theme, location, questions — anything helps!"></textarea></div>
+          <button type="submit" class="btn">Send my request →</button>
+          <p class="fnote" id="fnote">We'll never share your info. Reply within one business day.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="water">make something!</div>
+  <div class="wrap">
+    <img class="foot-logo" src="assets/img/logo-banner.png?v=2" alt="Salt & Scissors Creative Company"/>
+    <p style="font-family:var(--disp);font-style:italic;color:rgba(254,255,255,.8)">Coastal. Creative. Curated. 🌊✂️ — parties, pop-ups &amp; workshops · Wilmington, NC + beyond</p>
+    <div class="socials">
+      <a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+      <a href="https://www.facebook.com/saltandscissors" target="_blank" rel="noopener" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 22v-8h2.7l.4-3H13V9c0-.9.3-1.5 1.6-1.5H16V4.8c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9V11H7.5v3H10v8h3z"/></svg></a>
+    </div>
+    <p class="tiny">© <span id="year"></span> Salt &amp; Scissors Creative Co. · Made with love (and glitter) in Wilmington, NC</p>
+  </div>
+</footer>
+
+<a class="theme-switch" href="./">☀ See cream version</a>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-x" aria-label="Close">×</button>
+  <button class="lb-prev" aria-label="Previous">‹</button>
+  <img alt="Enlarged gallery photo"/>
+  <button class="lb-next" aria-label="Next">›</button>
+</div>
+
+<script>
+  // nav shrink + burger
+  const nav = document.getElementById('nav');
+  const burger = document.getElementById('burger');
+  const links = document.getElementById('navLinks');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 30), {passive:true});
+  burger.addEventListener('click', () => links.classList.toggle('open'));
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+
+  // scroll spy
+  const spy = new IntersectionObserver(es => es.forEach(e => {
+    if(e.isIntersecting){
+      links.querySelectorAll('a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id));
+    }
+  }), {rootMargin:'-40% 0px -55% 0px'});
+  document.querySelectorAll('section[id]').forEach(s => spy.observe(s));
+
+  // reveal
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+  }), {threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // gallery filter
+  const figs = [...document.querySelectorAll('#masonry figure')];
+  document.querySelectorAll('.fbtn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.fbtn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const f = b.dataset.f;
+    figs.forEach(fig => fig.classList.toggle('hide', f !== 'all' && fig.dataset.cat !== f));
+  }));
+
+  // lightbox with prev/next over currently visible set
+  const lb = document.getElementById('lightbox');
+  const lbImg = lb.querySelector('img');
+  let cur = 0;
+  const visible = () => figs.filter(f => !f.classList.contains('hide'));
+  function show(i){
+    const v = visible();
+    cur = (i + v.length) % v.length;
+    lbImg.src = v[cur].querySelector('img').src;
+    lb.classList.add('open');
+  }
+  figs.forEach(f => f.addEventListener('click', () => show(visible().indexOf(f))));
+  lb.querySelector('.lb-x').addEventListener('click', () => lb.classList.remove('open'));
+  lb.querySelector('.lb-prev').addEventListener('click', e => { e.stopPropagation(); show(cur - 1); });
+  lb.querySelector('.lb-next').addEventListener('click', e => { e.stopPropagation(); show(cur + 1); });
+  lb.addEventListener('click', e => { if(e.target === lb) lb.classList.remove('open'); });
+  addEventListener('keydown', e => {
+    if(!lb.classList.contains('open')) return;
+    if(e.key === 'Escape') lb.classList.remove('open');
+    if(e.key === 'ArrowLeft') show(cur - 1);
+    if(e.key === 'ArrowRight') show(cur + 1);
+  });
+
+  // year + demo form
+  document.getElementById('year').textContent = new Date().getFullYear();
+  function handleSubmit(e){
+    e.preventDefault();
+    const n = document.getElementById('fnote');
+    n.textContent = "🎉 Thanks! Your request is ready — connect this form to email or a booking tool to go live.";
+    n.style.color = "var(--sand)";
+    e.target.querySelector('button').textContent = "Request ready ✓";
+  }
+</script>
+</body>
+</html>
