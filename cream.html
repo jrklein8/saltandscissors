@@ -51,6 +51,7 @@
     display:inline-flex;align-items:center;gap:.6rem;
     text-transform:uppercase;letter-spacing:.24em;font-size:.72rem;font-weight:800;color:var(--terra);margin-bottom:1.1rem;
   }
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--terra);border-radius:2px}
   .lead{font-size:clamp(1.02rem,1.5vw,1.16rem);color:var(--ink-soft);max-width:58ch}
 
   .btn{
@@ -58,8 +59,8 @@
     padding:1rem 2rem;border-radius:999px;cursor:pointer;border:none;font-family:var(--body);
     transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s, background .22s;
   }
-  .btn-primary{background:var(--terra);color:#fff}
-  .btn-primary:hover{transform:translateY(-3px) rotate(-1deg)}
+  .btn-primary{background:var(--terra);color:#fff;box-shadow:0 14px 28px -12px var(--terra)}
+  .btn-primary:hover{transform:translateY(-3px) rotate(-1deg);box-shadow:0 20px 36px -14px var(--terra)}
   .btn-ghost{background:transparent;color:var(--slate);box-shadow:inset 0 0 0 2px var(--slate)}
   .btn-ghost:hover{background:var(--slate);color:#fff;transform:translateY(-3px) rotate(1deg)}
 
@@ -156,9 +157,9 @@
     animation:spin 22s linear infinite;filter:drop-shadow(0 10px 18px rgba(var(--shadow),.35));
   }
   @keyframes spin{to{transform:rotate(360deg)}}
-  .sticker text{font-family:var(--body);font-weight:800;font-size:13px;letter-spacing:.13em;fill:var(--paper);text-transform:uppercase}
+  .sticker text{font-family:var(--body);font-weight:800;font-size:12.5px;letter-spacing:.22em;fill:var(--paper);text-transform:uppercase}
   .sticker .disc{fill:var(--terra)}
-  .sticker .mid{fill:var(--paper);font-family:var(--disp);font-size:14px;font-style:italic;text-transform:none;letter-spacing:.04em}
+  .sticker .mid{fill:var(--paper);font-family:var(--disp);font-size:30px;font-style:italic}
   @media(max-width:520px){.sticker{width:100px;height:100px;left:-2%}}
 
   /* ============ MARQUEE ============ */
@@ -181,23 +182,6 @@
   .chip{font-size:.8rem;font-weight:800;padding:.42rem 1rem;border-radius:999px;background:#fff;border:1.5px solid rgba(var(--shadow),.16);color:var(--slate)}
   .chip.hl{background:var(--sage);border-color:transparent;color:#2e3c3a}
   .ages{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.4rem;font-family:var(--hand);font-size:1.35rem;color:var(--terra)}
-
-  /* experience nav cards */
-  .exp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem}
-  @media(max-width:860px){.exp-cards{grid-template-columns:1fr 1fr}}
-  @media(max-width:560px){.exp-cards{grid-template-columns:1fr}}
-  .exp-card{background:#fff;border-radius:var(--r-md);padding:1.7rem 1.5rem 1.5rem;box-shadow:0 16px 36px -28px rgba(var(--shadow),.6);display:block;transition:transform .3s;position:relative}
-  .exp-card:hover{transform:translateY(-6px) rotate(-.4deg)}
-  .exp-card .em{font-family:var(--disp);font-style:italic;font-size:1rem;color:var(--terra);letter-spacing:.06em;margin-bottom:.6rem;display:block}
-  .exp-card h3{font-size:1.22rem;color:var(--slate);margin-bottom:.4rem}
-  .exp-card p{font-size:.9rem;color:var(--ink-soft)}
-  .exp-card .go{display:inline-block;margin-top:.9rem;font-weight:800;font-size:.82rem;color:var(--terra)}
-  .exp-row[id]{scroll-margin-top:110px}
-  .art-frame{position:relative;width:78%;transform:rotate(-3deg);transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
-  .art-frame:hover{transform:rotate(-1deg) translateY(-6px)}
-  .art-wrap{display:grid;place-items:center;aspect-ratio:4/4.6;max-width:440px;margin-inline:auto;width:100%}
-  .art-ph{aspect-ratio:4/5;display:grid;place-items:center;border-radius:3px}
-  .art-ph svg{width:42%;height:auto;color:#FBF6EF}
 
   .also-head{text-align:center;margin-top:3.5rem;font-family:var(--hand);font-size:1.6rem;color:var(--terra);transform:rotate(-1deg)}
   .more{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:1.4rem}
@@ -400,35 +384,6 @@
   .sec-head{text-align:center;max-width:64ch;margin:0 auto 3rem}
   .sec-head h2{font-size:clamp(2.1rem,4.2vw,3.2rem);margin-bottom:.8rem}
   .sec-head .lead{margin-inline:auto}
-
-  /* ============ GREEN THEME (client variant) ============ */
-  body{background:var(--slate);color:#F2ECE2}
-  ::-webkit-scrollbar-track{background:#465655}
-  ::-webkit-scrollbar-thumb{background:#394746;border-color:#465655}
-  .hero{padding-top:clamp(7.5rem,14vw,10rem)}
-  .hero h1,.sec-head h2,.about-grid h2,.exp-row h3,.step h3{color:#FBF6EF}
-  .lead{color:#E6E1D3}
-  .exp-row p{color:#E0DCCE}
-  .step p{color:#DDE2DC}
-  .eyebrow{color:var(--sand)}
-  .hero h1 .fancy{color:var(--sand)}
-  .hero h1 .fancy svg path{stroke:var(--clay)}
-  .proof small{color:#D9DED6}
-  .ages,.also-head,.pack-note{color:var(--sand)}
-  .exp-row+.exp-row{border-top-color:rgba(251,246,239,.22)}
-  .steps::before{border-top-color:rgba(251,246,239,.28)}
-  .how{background:#485857}
-  .marquee{background:var(--sand)}
-  .marquee-track{color:var(--slate)}
-  .marquee-track span::after{color:var(--terra)}
-  .hero .btn-ghost{color:#FBF6EF;box-shadow:inset 0 0 0 2px #FBF6EF}
-  .hero .btn-ghost:hover{background:#FBF6EF;color:var(--slate)}
-  .fbtn.on{background:var(--sand);color:#513a1e;border-color:var(--sand)}
-  .pack.feat{background:#3f4e4d;border-color:#3f4e4d}
-  .book-panel{background:#3f4e4d}
-  footer{background:#3f4e4d}
-  .theme-switch{position:fixed;bottom:1.2rem;right:1.2rem;z-index:150;background:#FBF6EF;color:var(--slate);font-weight:800;font-size:.85rem;padding:.65rem 1.2rem;border-radius:999px;box-shadow:0 14px 30px -12px rgba(0,0,0,.45);transition:transform .2s}
-  .theme-switch:hover{transform:translateY(-2px)}
 </style>
 </head>
 <body id="top">
@@ -454,11 +409,14 @@
 
 <!-- HERO -->
 <section class="hero">
+  <div class="wrap">
+    <img class="masthead" src="assets/img/logo-full.png?v=2" alt="Salt & Scissors Creative Company"/>
+  </div>
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow">Creative Experiences for Every Celebration • Wilmington, NC + Beyond</span>
+      <span class="eyebrow">Wilmington, NC + beyond · art experiences for all ages</span>
       <h1>Big memories,<br/>made <span class="fancy">by hand<svg viewBox="0 0 220 14" preserveAspectRatio="none"><path d="M3 10 Q 22 3 41 9 T 79 9 T 117 9 T 155 9 T 193 9 T 217 9"/></svg></span></h1>
-      <p class="lead">Life's best moments deserve more than ordinary entertainment. At Salt &amp; Scissors, every experience is thoughtfully curated, creatively designed, and inspired by the coastal charm we call home. From setup to cleanup, we handle every detail and guide the experience so you can relax, be present, and make lasting memories.</p>
+      <p class="lead">From birthday parties to girls' nights, we roll up with the sundae slime, the charms and the sensory magic — set the table, host the fun (or prep it all for you to host), and pack up every last sprinkle.</p>
       <div class="hero-cta">
         <a href="#book" class="btn btn-primary">Book your event →</a>
         <a href="#experiences" class="btn btn-ghost">Browse experiences</a>
@@ -476,15 +434,14 @@
       </div>
     </div>
     <div class="collage reveal">
-      <figure class="polaroid p1"><div class="ph"><img src="assets/img/charm-2.jpg" alt="Friends showing off their new charm bracelets"/></div><figcaption>bracelet crew!</figcaption></figure>
+      <figure class="polaroid p1"><div class="ph"><img src="assets/img/charm-2.jpg" alt="Friends showing off their new charm bracelets"/></div><figcaption>bracelet crew ♡</figcaption></figure>
       <figure class="polaroid p2"><div class="ph"><img src="assets/img/slime-1.jpg" alt="Coastal Creamery sensory sundae"/></div><figcaption>sundae slime!</figcaption></figure>
       <figure class="polaroid p3"><div class="ph"><img src="assets/img/sensory-1.jpg" alt="Ocean Explorer sensory kit"/></div><figcaption>ocean explorers</figcaption></figure>
       <svg class="sticker" viewBox="0 0 120 120" aria-hidden="true">
         <circle class="disc" cx="60" cy="60" r="58"/>
         <defs><path id="circlePath" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"/></defs>
-        <text><textPath href="#circlePath">· Salt &amp; Scissors · Creative Co</textPath></text>
-        <text class="mid" x="60" y="57" text-anchor="middle">est.</text>
-        <text class="mid" x="60" y="74" text-anchor="middle" style="font-size:17px">2026</text>
+        <text><textPath href="#circlePath">Salt &amp; Scissors · Creative Co. · est 2026 ·</textPath></text>
+        <text class="mid" x="60" y="70" text-anchor="middle">✂</text>
       </svg>
     </div>
   </div>
@@ -493,8 +450,8 @@
 <!-- MARQUEE -->
 <div class="marquee" aria-hidden="true">
   <div class="marquee-track">
-    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
-    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
+    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Jars</span><span>Pop-Ups &amp; Workshops</span>
+    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Jars</span><span>Pop-Ups &amp; Workshops</span>
   </div>
 </div>
 
@@ -502,21 +459,12 @@
 <section id="experiences">
   <div class="wrap">
     <div class="sec-head reveal">
-      <span class="eyebrow" style="justify-content:center">Signature Experiences</span>
-      <h2>Let's Create Something Unforgettable</h2>
-      <p class="lead">Every Salt &amp; Scissors experience is thoughtfully designed and fully customizable. Whether you're planning a birthday party, girls' night, workshop, pop-up, corporate event, or community celebration, we'll help you create an experience your guests won't forget.</p>
+      <span class="eyebrow" style="justify-content:center">The menu</span>
+      <h2>Pick your party's main event</h2>
+      <p class="lead">Six signature experiences — fully stocked, beautifully styled, and hosted from first squish to final charm. Prefer to run the show yourself? We'll curate and prep everything for you to host.</p>
     </div>
 
-    <div class="exp-cards reveal">
-      <a class="exp-card" href="#exp-sundaes"><span class="em">No. 01</span><h3>Coastal Creamery Sensory Sundaes</h3><p>Our signature sensory sundae experience featuring custom slime or play dough creations.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-charm"><span class="em">No. 02</span><h3>Charm Bar Experience</h3><p>Design one-of-a-kind bracelets and necklaces with curated charms and chains.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-scenes"><span class="em">No. 03</span><h3>Sensory Scenes</h3><p>Create imaginative themed worlds with your choice of sensory base, curated accessories, and endless creativity.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-canvas"><span class="em">No. 04</span><h3>Canvas Painting Party</h3><p>Paint, create, and celebrate with a custom canvas experience.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-patch"><span class="em">No. 05</span><h3>DIY Patch Party</h3><p>Customize hats and accessories with fun patches and creative flair.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-custom"><span class="em">No. 06</span><h3>Custom Creative Experience</h3><p>Dream it, and we'll design a one-of-a-kind creative experience just for your celebration.</p><span class="go">explore ↓</span></a>
-    </div>
-
-    <div class="exp-row" id="exp-sundaes">
+    <div class="exp-row">
       <div class="exp-media reveal">
         <div class="stack">
           <img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime mixing in progress"/>
@@ -534,11 +482,11 @@
           <span class="chip">Toppings &amp; drizzle bar</span>
           <span class="chip">Take-home sundae cup</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; ages 4–12 (grown-ups sneak one too)</span>
+        <span class="ages">✏ ages 4–12 (grown-ups sneak one too)</span>
       </div>
     </div>
 
-    <div class="exp-row" id="exp-charm">
+    <div class="exp-row">
       <div class="exp-media reveal">
         <div class="stack">
           <img src="assets/img/charm-4.jpg" loading="lazy" alt="Charm bracelet building"/>
@@ -549,18 +497,18 @@
       <div class="reveal d1">
         <div class="exp-num">No. 02 — endless customization</div>
         <h3>The Charm Bar Experience</h3>
-        <p>A fully hosted jewelry counter with curated charms, chains and letters — design one-of-a-kind bracelets and necklaces guests actually wear past the weekend. Matching BFF sets strongly encouraged.</p>
+        <p>A fully hosted jewelry counter with curated charms, chains and letters — endless customization for one-of-a-kind keepsakes guests actually wear past the weekend. Matching BFF sets strongly encouraged.</p>
         <div class="chips">
           <span class="chip hl">Keepsake favor</span>
           <span class="chip">Curated charm wall</span>
           <span class="chip">Sized on the spot</span>
           <span class="chip">Girls' night favorite</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; ages 5 to 95 — birthdays, showers &amp; girls' nights</span>
+        <span class="ages">✏ ages 5 to 95 — birthdays, showers &amp; girls' nights</span>
       </div>
     </div>
 
-    <div class="exp-row" id="exp-scenes">
+    <div class="exp-row">
       <div class="exp-media reveal">
         <div class="stack two">
           <img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean Explorer kit with beach sand and shells"/>
@@ -568,80 +516,29 @@
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 03 — imagination stations</div>
-        <h3>Sensory Scenes</h3>
-        <p>Create imaginative themed worlds with your choice of sensory base, curated accessories, and endless creativity — think ocean explorers with real beach sand, shells and tiny sea creatures. Fully hosted, endlessly squishable, mess handled.</p>
+        <div class="exp-num">No. 03 — for the littles</div>
+        <h3>The Sensory Jar Station</h3>
+        <p>Kinetic sand or play dough build stations, themed to your event — think ocean explorers with real beach sand, shells and tiny sea creatures. Fully hosted, endlessly squishable, mess handled.</p>
         <div class="chips">
           <span class="chip hl">Little-kid favorite</span>
-          <span class="chip">Choice of sensory base</span>
-          <span class="chip">Curated accessories</span>
+          <span class="chip">Kinetic sand or play dough</span>
           <span class="chip">Themed to your party</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; perfect for ages 2–8</span>
+        <span class="ages">✏ perfect for ages 2–8</span>
       </div>
     </div>
 
-    <div class="exp-row" id="exp-canvas">
-      <div class="exp-media reveal">
-        <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#C79FC7,#A6BFB4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 9-9c0 2.2-1.4 3.2-3 3.2h-2.2a2 2 0 0 0-2 2c0 .9.6 1.4.6 2.3 0 .9-1 1.5-2.4 1.5z"/><circle cx="7.6" cy="10.4" r=".9"/><circle cx="12" cy="7.4" r=".9"/><circle cx="16.4" cy="10.4" r=".9"/><circle cx="8.6" cy="15.2" r=".9"/></svg></div><figcaption>masterpiece loading…</figcaption></figure>
-        </div>
-      </div>
-      <div class="reveal d1">
-        <div class="exp-num">No. 04 — paint &amp; celebrate</div>
-        <h3>Canvas Painting Party</h3>
-        <p>A mini canvas painting party customized to your theme — paint, create, and celebrate. All supplies, setup, step-by-step guidance and cleanup included.</p>
-        <div class="chips">
-          <span class="chip hl">Themed to your event</span>
-          <span class="chip">All supplies included</span>
-          <span class="chip">Guided step-by-step</span>
-        </div>
-        <span class="ages">&#x270F;&#xFE0E; loved by kids &amp; grown-ups alike</span>
-      </div>
-    </div>
-
-    <div class="exp-row" id="exp-patch">
-      <div class="exp-media reveal">
-        <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#DBAF76,#C17E63)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14v-1a7 7 0 0 1 14 0v1"/><path d="M5 14c0 .8 3.1 1.6 7 1.6s7-.8 7-1.6"/><path d="M19 14.6c2.2.3 3.5 1 3.5 1.9 0 1-2 1.9-4.7 2.1"/><path d="M12 6V4.5"/><circle cx="12" cy="11.5" r="2"/></svg></div><figcaption>patch it up!</figcaption></figure>
-        </div>
-      </div>
-      <div class="reveal d1">
-        <div class="exp-num">No. 05 — wear your art</div>
-        <h3>DIY Patch Party</h3>
-        <p>Guests customize hats and accessories with fun patches and creative flair — pick a base, pile on the patches, and wear your creation home. Fully hosted with materials, setup &amp; cleanup included.</p>
-        <div class="chips">
-          <span class="chip hl">Hats &amp; accessories</span>
-          <span class="chip">Patch wall bar</span>
-          <span class="chip">Wear it home</span>
-        </div>
-        <span class="ages">&#x270F;&#xFE0E; tweens, teens &amp; grown-ups</span>
-      </div>
-    </div>
-
-    <div class="exp-row" id="exp-custom">
-      <div class="exp-media reveal">
-        <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#C79FC7,#DBAF76)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 13.3 7l3.5 1.3-3.5 1.3L12 13l-1.3-3.4L7.2 8.3 10.7 7z"/><path d="m18.6 13.2.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/><path d="m6.2 14.8.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg></div><figcaption>dream it up!</figcaption></figure>
-        </div>
-      </div>
-      <div class="reveal d1">
-        <div class="exp-num">No. 06 — fully bespoke</div>
-        <h3>Custom Creative Experience</h3>
-        <p>Dream it, and we'll design a one-of-a-kind creative experience just for your celebration — theme, styling, supplies and hosting, all curated from scratch.</p>
-        <div class="chips">
-          <span class="chip hl">Fully bespoke</span>
-          <span class="chip">Any theme, any age</span>
-          <span class="chip">Hosted or prepped-to-host</span>
-        </div>
-        <span class="ages">&#x270F;&#xFE0E; made for your crowd</span>
-      </div>
+    <div class="also-head">— also on the menu —</div>
+    <div class="more">
+      <div class="more-card reveal"><div class="ic" style="background:rgba(199,159,199,.25)">🎨</div><div><h4>Canvas Painting Party</h4><p>Mini canvas party customized to your theme — all supplies, setup, guidance &amp; cleanup included.</p></div></div>
+      <div class="more-card reveal d1"><div class="ic" style="background:rgba(219,175,118,.28)">🧢</div><div><h4>DIY Patch Party</h4><p>Guests customize hats &amp; accessories with fun patches. Fully hosted with materials &amp; cleanup.</p></div></div>
+      <div class="more-card reveal d2"><div class="ic" style="background:rgba(166,191,180,.28)">✨</div><div><h4>Custom Craft Experience</h4><p>Have a theme in mind? Rebecca will design a fully hosted craft experience just for your event.</p></div></div>
     </div>
   </div>
 </section>
 
 <!-- HOW -->
-<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#485857"/></svg>
+<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#F5EDE1"/></svg>
 <section class="how" id="how" style="padding-top:3rem">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -655,24 +552,23 @@
     </div>
   </div>
 </section>
-<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true" style="transform:scaleY(-1);background:#485857"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#536665"/></svg>
+<svg class="wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true" style="transform:scaleY(-1);background:#F5EDE1"><path d="M0,34 C240,66 480,2 720,26 C960,50 1200,10 1440,34 L1440,64 L0,64 Z" fill="#FBF6EF"/></svg>
 
 <!-- ABOUT -->
 <section id="about" style="padding-top:3rem">
   <div class="wrap about-grid">
     <div class="reveal">
-      <span class="eyebrow">Meet Rebecca</span>
-      <h2>The Heart Behind<br/>Salt &amp; Scissors</h2>
-      <p class="lead">I'm a mom who has always loved creating, but watching my own kids light up while making something with their hands inspired me to turn that joy into something bigger.</p>
-      <p class="lead" style="margin-top:1rem">That's how Salt &amp; Scissors was born. Built on the belief that the best celebrations happen when people create, laugh, and make memories together, every experience is thoughtfully curated so you can spend less time worrying about the details and more time enjoying the moment.</p>
+      <span class="eyebrow">About us</span>
+      <h2>Hi, I'm Rebecca —<br/>founder &amp; chief creative.</h2>
+      <p class="lead">I'm a mom who has always loved crafting and exploring new creative projects. Salt &amp; Scissors was born from that joy — beautifully styled craft experiences for kids and adults alike, at parties, pop-ups and workshops across Wilmington and beyond. Whether I'm there guiding the celebration or thoughtfully prepping everything for you to host, every detail is curated to feel intentional, creative, and completely stress-free.</p>
       <div class="founder-quote">
-        <p>"The most meaningful keepsakes are the handmade memories created along the way."</p>
-        <span class="sig">— Rebecca · Coastal. Creative. Curated.</span>
+        <p>"Watching my own kids light up while making something with their hands is the heart and soul behind this business."</p>
+        <span class="sig">— Rebecca ✂ Coastal. Creative. Curated.</span>
       </div>
     </div>
     <div class="about-media reveal d1">
       <figure class="polaroid back"><div class="ph" style="aspect-ratio:3/4"><img src="assets/img/owner-2.jpg" loading="lazy" alt="Event booth"/></div></figure>
-      <figure class="polaroid"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/owner-3.jpg" loading="lazy" alt="Rebecca, founder of Salt & Scissors, at the beach"/></div><figcaption>hi, friend!</figcaption></figure>
+      <figure class="polaroid"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/owner-1.jpg" loading="lazy" alt="Founder at the Salt & Scissors booth"/></div><figcaption>market day! ♡</figcaption></figure>
     </div>
   </div>
 </section>
@@ -688,7 +584,7 @@
       <button class="fbtn on" data-f="all">All</button>
       <button class="fbtn" data-f="slime">Sensory Sundaes</button>
       <button class="fbtn" data-f="charm">Charm Bar</button>
-      <button class="fbtn" data-f="sensory">Sensory Scenes</button>
+      <button class="fbtn" data-f="sensory">Sensory Jars</button>
     </div>
     <div class="masonry reveal" id="masonry">
       <figure data-cat="slime" data-label="sundae slime"><img src="assets/img/slime-1.jpg" loading="lazy" alt="Sensory sundae slime"/></figure>
@@ -787,7 +683,7 @@
       </details>
       <details>
         <summary>Is this just for kids?</summary>
-        <div class="a">Not even close. Sensory sundaes shine for ages 4–12 and sensory scenes for 2–8, but the charm bar and canvas parties are grown-up favorites — girls' nights, showers, team events. Tell us your crowd and we'll tune it to fit.</div>
+        <div class="a">Not even close. Sensory sundaes shine for ages 4–12 and sensory jars for 2–8, but the charm bar and canvas parties are grown-up favorites — girls' nights, showers, team events. Tell us your crowd and we'll tune it to fit.</div>
       </details>
       <details>
         <summary>Can you prep it for me to host?</summary>
@@ -819,9 +715,9 @@
           <h2>Grab your date</h2>
           <p class="lead">Tell us about your celebration — we'll reply within one business day with availability and a custom quote.</p>
           <div class="contact-lines">
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></div><div><b>DM to book</b><span><a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" style="text-decoration:underline">@saltandscissors</a> on Instagram</span></div></div>
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><div><b>Email</b><span>hello@saltandscissorsco.com</span></div></div>
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><b>Serving</b><span>Wilmington, NC + beyond</span></div></div>
+            <div class="cline"><div class="ic">📸</div><div><b>DM to book</b><span><a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" style="text-decoration:underline">@saltandscissors</a> on Instagram</span></div></div>
+            <div class="cline"><div class="ic">✉️</div><div><b>Email</b><span>hello@saltandscissorsco.com</span></div></div>
+            <div class="cline"><div class="ic">📍</div><div><b>Serving</b><span>Wilmington, NC + beyond</span></div></div>
           </div>
         </div>
         <form onsubmit="handleSubmit(event)">
@@ -833,8 +729,8 @@
             <div class="field"><label for="date">Event date</label><input id="date" type="date" required/></div>
             <div class="field"><label for="exp">Experience</label>
               <select id="exp">
-                <option>Coastal Creamery Sensory Sundaes</option><option>Charm Bar Experience</option><option>Sensory Scenes</option>
-                <option>Canvas Painting Party</option><option>DIY Patch Party</option><option>Custom Creative Experience</option>
+                <option>Coastal Creamery Sensory Sundaes</option><option>Charm Bar Experience</option><option>Sensory Jar Station</option>
+                <option>Canvas Painting Party</option><option>DIY Patch Party</option><option>Custom Craft Experience</option>
                 <option>Help me pick!</option>
               </select>
             </div>
@@ -857,7 +753,7 @@
   <div class="water">make something!</div>
   <div class="wrap">
     <img class="foot-logo" src="assets/img/logo-banner.png?v=2" alt="Salt & Scissors Creative Company"/>
-    <p style="font-family:var(--disp);font-style:italic;color:rgba(254,255,255,.8)">Coastal. Creative. Curated. — parties, pop-ups &amp; workshops · Wilmington, NC + beyond</p>
+    <p style="font-family:var(--disp);font-style:italic;color:rgba(254,255,255,.8)">Coastal. Creative. Curated. 🌊✂️ — parties, pop-ups &amp; workshops · Wilmington, NC + beyond</p>
     <div class="socials">
       <a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
       <a href="https://www.facebook.com/saltandscissors" target="_blank" rel="noopener" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13 22v-8h2.7l.4-3H13V9c0-.9.3-1.5 1.6-1.5H16V4.8c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9V11H7.5v3H10v8h3z"/></svg></a>
@@ -934,7 +830,7 @@
   function handleSubmit(e){
     e.preventDefault();
     const n = document.getElementById('fnote');
-    n.textContent = "Thanks! Your request is ready — connect this form to email or a booking tool to go live.";
+    n.textContent = "🎉 Thanks! Your request is ready — connect this form to email or a booking tool to go live.";
     n.style.color = "var(--sand)";
     e.target.querySelector('button').textContent = "Request ready ✓";
   }
