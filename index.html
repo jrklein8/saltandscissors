@@ -180,7 +180,18 @@
   .chips{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.3rem}
   .chip{font-size:.8rem;font-weight:800;padding:.42rem 1rem;border-radius:999px;background:#fff;border:1.5px solid rgba(var(--shadow),.16);color:var(--slate)}
   .chip.hl{background:var(--sage);border-color:transparent;color:#2e3c3a}
-  .ages{display:inline-flex;align-items:center;gap:.5rem;margin-top:1.4rem;font-family:var(--hand);font-size:1.35rem;color:var(--terra)}
+  .ages{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--hand);font-size:1.35rem;color:var(--terra)}
+
+  /* experience footer: ages + view investment */
+  .exp-foot{display:flex;align-items:center;gap:1.3rem;flex-wrap:wrap;margin-top:1.4rem}
+  .invest{display:inline-flex;align-items:center;gap:.55rem;font-weight:800;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sand);transition:color .25s}
+  .invest .lbl{text-decoration:underline dotted 1.5px;text-underline-offset:5px}
+  .invest .arrow{transition:transform .25s}
+  .invest:hover{color:#FBF6EF}
+  .invest:hover .arrow{transform:translateY(3px)}
+  .pack[id]{scroll-margin-top:110px}
+  .pack.spot{animation:spotring 2.4s ease}
+  @keyframes spotring{0%{outline:0 solid transparent;outline-offset:4px}20%,70%{outline:4px solid var(--sand);outline-offset:4px}100%{outline:0 solid transparent;outline-offset:4px}}
 
   /* experience nav cards */
   .exp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem}
@@ -526,15 +537,19 @@
       </div>
       <div class="reveal d1">
         <div class="exp-num">No. 01 — Our Signature Experience</div>
-        <h3>Coastal Creamery Sensory Sundaes</h3>
-        <p>Our signature sensory experience. Guests create a custom slime or play dough sundae with colorful drizzles, sprinkles, and fun toppings before adding the cherry on top. They take home their one-of-a-kind creation in a real sundae cup to enjoy again and again.</p>
+        <h3>Coastal Creamery</h3>
+        <p>Meet our signature sensory experience! Guests create their own themed slime, then personalize it with colors, drizzles, sprinkles, charms, fun mix-ins, and a decorated take-home container. Every creation is customized to match your celebration, making it completely one of a kind.</p>
+        <p style="margin-top:.8rem">Prefer play dough? Play dough is available upon request for younger guests or slime-free celebrations.</p>
         <div class="chips">
           <span class="chip hl">Most popular</span>
-          <span class="chip">Slime or play dough</span>
-          <span class="chip">Toppings &amp; drizzle bar</span>
-          <span class="chip">Take-home sundae cup</span>
+          <span class="chip">Create your own slime</span>
+          <span class="chip">Fully Themed</span>
+          <span class="chip">Enjoy again &amp; again</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; Ages 4+</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; Ages 4+</span>
+          <a class="invest" href="#price-sundaes"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
 
@@ -556,7 +571,10 @@
           <span class="chip">Mix &amp; Match</span>
           <span class="chip">Create Your Own</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; Ages 6+ • Birthdays, showers &amp; girls' nights</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; Ages 6+ • Birthdays, showers &amp; girls' nights</span>
+          <a class="invest" href="#price-charm"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
 
@@ -577,7 +595,10 @@
           <span class="chip">Curated accessories</span>
           <span class="chip">Themed to your party</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; perfect for ages 2–8</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; perfect for ages 2–8</span>
+          <a class="invest" href="#price-scenes"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
 
@@ -597,7 +618,10 @@
           <span class="chip">Take-home masterpiece</span>
           <span class="chip">Creative freedom</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; Recommended for ages 4+</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; Recommended for ages 4+</span>
+          <a class="invest" href="#price-canvas"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
 
@@ -617,7 +641,10 @@
           <span class="chip">Personalized accessory</span>
           <span class="chip">Wearable keepsake</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; Ages 4+, especially popular with tweens</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; Ages 4+, especially popular with tweens</span>
+          <a class="invest" href="#price-patch"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
 
@@ -637,7 +664,10 @@
           <span class="chip">One-of-a-Kind</span>
           <span class="chip">Endless Possibilities</span>
         </div>
-        <span class="ages">&#x270F;&#xFE0E; made for your crowd</span>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; made for your crowd</span>
+          <a class="invest" href="#price-custom"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
       </div>
     </div>
   </div>
@@ -670,7 +700,7 @@
       <p class="lead" style="margin-top:1rem">That's how Salt &amp; Scissors was born. Built on the belief that the best celebrations happen when people create, laugh, and make memories together, every experience is thoughtfully curated so you can spend less time worrying about the details and more time enjoying the moment.</p>
       <div class="founder-quote">
         <p>"The most meaningful keepsakes are the handmade memories created along the way."</p>
-        <span class="sig">— Rebecca · Coastal. Creative. Curated.</span>
+        <span class="sig">— Rebecca</span>
       </div>
     </div>
     <div class="about-media reveal d1">
@@ -714,48 +744,82 @@
 <section id="packages">
   <div class="wrap">
     <div class="sec-head reveal">
-      <span class="eyebrow" style="justify-content:center">Simple pricing</span>
-      <h2>Packages for every party size</h2>
-      <span class="pack-note">↓ sample pricing — we'll drop in your real rates!</span>
+      <span class="eyebrow" style="justify-content:center">Hosted Experiences</span>
+      <h2>Creative Experiences for Every Celebration</h2>
     </div>
     <div class="packs">
-      <div class="pack reveal">
-        <h3>The Mini</h3>
-        <div class="for">small &amp; sweet playdates</div>
-        <div class="price">$195 <small>· up to 8 guests</small></div>
+      <div class="pack feat reveal" id="price-sundaes">
+        <div class="ribbon">Most Popular</div>
+        <h3>Coastal Creamery</h3>
+        <div class="for">starting at</div>
+        <div class="price">$350 <small>· up to 15 guests</small></div>
         <ul>
-          <li>1 signature station</li>
-          <li>60 minutes hosted</li>
-          <li>All supplies + take-homes</li>
-          <li>Setup &amp; full cleanup</li>
+          <li>Create your own themed slime</li>
+          <li>90-minute hosted experience</li>
+          <li>Perfect for birthdays &amp; celebrations</li>
+          <li>Setup, cleanup &amp; all supplies included</li>
         </ul>
-        <a href="#book" class="btn btn-ghost">Choose Mini</a>
+        <a href="#book" class="btn btn-primary" style="background:var(--sand);color:#513a1e">Book Coastal Creamery</a>
       </div>
-      <div class="pack feat reveal d1">
-        <div class="ribbon">Most booked</div>
-        <h3>The Classic</h3>
-        <div class="for">the birthday sweet spot</div>
+      <div class="pack reveal d1" id="price-canvas">
+        <h3>Canvas Painting</h3>
+        <div class="for">starting at</div>
+        <div class="price">$225 <small>· up to 10 guests</small></div>
+        <ul>
+          <li>Step-by-step creative fun</li>
+          <li>90-minute hosted experience</li>
+          <li>Perfect for birthdays, playdates &amp; girls' nights</li>
+          <li>Setup, cleanup &amp; all supplies included</li>
+        </ul>
+        <a href="#book" class="btn btn-ghost">Book Canvas Party</a>
+      </div>
+      <div class="pack reveal d2" id="price-charm">
+        <h3>Charm Bar</h3>
+        <div class="for">starting at</div>
         <div class="price">$325 <small>· up to 15 guests</small></div>
         <ul>
-          <li>1 station + favor add-on</li>
-          <li>90 minutes hosted</li>
-          <li>Themed table styling</li>
-          <li>Setup &amp; full cleanup</li>
-          <li>Guest of honor's VIP kit</li>
+          <li>Design your own jewelry</li>
+          <li>90-minute hosted experience</li>
+          <li>Perfect for birthdays, showers &amp; girls' nights</li>
+          <li>Setup, cleanup &amp; all supplies included</li>
         </ul>
-        <a href="#book" class="btn btn-primary" style="background:var(--sand);color:#513a1e">Choose Classic</a>
+        <a href="#book" class="btn btn-ghost">Book Charm Bar</a>
       </div>
-      <div class="pack reveal d2">
-        <h3>The Whole Shebang</h3>
-        <div class="for">schools, pop-ups &amp; big bashes</div>
-        <div class="price">Custom <small>· 20+ guests</small></div>
+      <div class="pack reveal" id="price-scenes">
+        <h3>Sensory Scenes</h3>
+        <div class="for">starting at</div>
+        <div class="price">$275 <small>· up to 10 guests</small></div>
         <ul>
-          <li>Multiple stations, mix &amp; match</li>
-          <li>Flexible hours &amp; extra hosts</li>
-          <li>High-volume favor pricing</li>
-          <li>Schools, markets &amp; pop-ups</li>
+          <li>Build an imaginative themed world</li>
+          <li>90-minute hosted experience</li>
+          <li>Perfect for younger kids &amp; playdates</li>
+          <li>Setup, cleanup &amp; all supplies included</li>
         </ul>
-        <a href="#book" class="btn btn-ghost">Get a quote</a>
+        <a href="#book" class="btn btn-ghost">Book Sensory Scenes</a>
+      </div>
+      <div class="pack reveal d1" id="price-patch">
+        <h3>DIY Patch Party</h3>
+        <div class="for">starting at</div>
+        <div class="price">$325 <small>· up to 15 guests</small></div>
+        <ul>
+          <li>Customize hats &amp; accessories</li>
+          <li>90-minute hosted experience</li>
+          <li>Perfect for birthdays, tweens &amp; teens</li>
+          <li>Setup, cleanup &amp; all supplies included</li>
+        </ul>
+        <a href="#book" class="btn btn-ghost">Book Patch Party</a>
+      </div>
+      <div class="pack reveal d2" id="price-custom">
+        <h3>Dream It. We'll Create It.</h3>
+        <div class="for">let's plan together</div>
+        <div class="price" style="font-size:1.8rem">Custom Quote</div>
+        <ul>
+          <li>Completely customized experiences</li>
+          <li>Mix &amp; match multiple stations</li>
+          <li>Special bundle pricing available</li>
+          <li>Perfect for schools, festivals &amp; large celebrations</li>
+        </ul>
+        <a href="#book" class="btn btn-ghost">Request a Custom Quote</a>
       </div>
     </div>
   </div>
@@ -931,6 +995,16 @@
     if(e.key === 'ArrowLeft') show(cur - 1);
     if(e.key === 'ArrowRight') show(cur + 1);
   });
+
+  // "View Investment" — scroll to the matching pricing card and pulse it
+  document.querySelectorAll('.invest').forEach(a => a.addEventListener('click', () => {
+    const card = document.getElementById(a.getAttribute('href').slice(1));
+    if(!card) return;
+    setTimeout(() => {
+      card.classList.add('spot');
+      setTimeout(() => card.classList.remove('spot'), 2500);
+    }, 650);
+  }));
 
   // year + demo form
   document.getElementById('year').textContent = new Date().getFullYear();
