@@ -190,8 +190,13 @@
   .invest:hover{color:#FBF6EF}
   .invest:hover .arrow{transform:translateY(3px)}
   .pack[id]{scroll-margin-top:110px}
-  .pack.spot{animation:spotring 2.4s ease}
-  @keyframes spotring{0%{outline:0 solid transparent;outline-offset:4px}20%,70%{outline:4px solid var(--sand);outline-offset:4px}100%{outline:0 solid transparent;outline-offset:4px}}
+  .pack.spot{animation:spotring 3s ease}
+  @keyframes spotring{
+    0%{outline:0 solid transparent;outline-offset:4px}
+    18%,72%{outline:3px solid var(--sand);outline-offset:4px;
+      box-shadow:0 0 22px 4px rgba(219,175,118,.55), 0 0 60px 18px rgba(219,175,118,.3), 0 0 110px 34px rgba(219,175,118,.14)}
+    100%{outline:0 solid transparent;outline-offset:4px}
+  }
 
   /* experience nav cards */
   .exp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem}
@@ -291,7 +296,7 @@
     box-shadow:0 16px 34px -26px rgba(var(--shadow),.55);transition:transform .3s, opacity .3s;
   }
   .masonry figure.hide{display:none}
-  .masonry img{width:100%;transition:transform .6s ease}
+  .masonry img{width:100%;height:auto;transition:transform .6s ease}
   .masonry figure:hover img{transform:scale(1.06)}
   .masonry figure::after{
     content:attr(data-label);position:absolute;left:10px;bottom:10px;font-family:var(--hand);font-size:1.2rem;color:#fff;
@@ -605,7 +610,7 @@
     <div class="exp-row" id="exp-canvas">
       <div class="exp-media reveal">
         <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#C79FC7,#A6BFB4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 9-9c0 2.2-1.4 3.2-3 3.2h-2.2a2 2 0 0 0-2 2c0 .9.6 1.4.6 2.3 0 .9-1 1.5-2.4 1.5z"/><circle cx="7.6" cy="10.4" r=".9"/><circle cx="12" cy="7.4" r=".9"/><circle cx="16.4" cy="10.4" r=".9"/><circle cx="8.6" cy="15.2" r=".9"/></svg></div><figcaption>masterpiece loading…</figcaption></figure>
+          <figure class="polaroid art-frame"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/canvas-1.jpg" loading="lazy" alt="Canvas painting party table with easels, blank canvases and florals"/></div><figcaption>paint &amp; celebrate!</figcaption></figure>
         </div>
       </div>
       <div class="reveal d1">
@@ -628,7 +633,7 @@
     <div class="exp-row" id="exp-patch">
       <div class="exp-media reveal">
         <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#DBAF76,#C17E63)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14v-1a7 7 0 0 1 14 0v1"/><path d="M5 14c0 .8 3.1 1.6 7 1.6s7-.8 7-1.6"/><path d="M19 14.6c2.2.3 3.5 1 3.5 1.9 0 1-2 1.9-4.7 2.1"/><path d="M12 6V4.5"/><circle cx="12" cy="11.5" r="2"/></svg></div><figcaption>patch it up!</figcaption></figure>
+          <figure class="polaroid art-frame"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/patch-1.jpg" loading="lazy" alt="DIY patch party table with tote bags and trays of colorful patches"/></div><figcaption>patch, create, design!</figcaption></figure>
         </div>
       </div>
       <div class="reveal d1">
@@ -651,7 +656,7 @@
     <div class="exp-row" id="exp-custom">
       <div class="exp-media reveal">
         <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph art-ph" style="background:linear-gradient(145deg,#C79FC7,#DBAF76)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 13.3 7l3.5 1.3-3.5 1.3L12 13l-1.3-3.4L7.2 8.3 10.7 7z"/><path d="m18.6 13.2.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/><path d="m6.2 14.8.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg></div><figcaption>dream it up!</figcaption></figure>
+          <figure class="polaroid art-frame"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/custom-1.jpg" loading="lazy" alt="Create-your-own fairy garden table with terracotta pots and tiny decorations"/></div><figcaption>dream it up!</figcaption></figure>
         </div>
       </div>
       <div class="reveal d1">
@@ -724,18 +729,18 @@
       <button class="fbtn" data-f="sensory">Sensory Scenes</button>
     </div>
     <div class="masonry reveal" id="masonry">
-      <figure data-cat="slime" data-label="sundae slime"><img src="assets/img/slime-1.jpg" loading="lazy" alt="Sensory sundae slime"/></figure>
-      <figure data-cat="charm" data-label="charm bar"><img src="assets/img/charm-5.jpg" loading="lazy" alt="Charm bracelet close up"/></figure>
-      <figure data-cat="sensory" data-label="ocean explorer"><img src="assets/img/sensory-2.jpg" loading="lazy" alt="Sensory play jars"/></figure>
-      <figure data-cat="slime" data-label="slime magic"><img src="assets/img/slime-8.jpg" loading="lazy" alt="Colorful slime"/></figure>
-      <figure data-cat="charm" data-label="bff bracelets"><img src="assets/img/charm-7.jpg" loading="lazy" alt="Finished charm bracelet"/></figure>
-      <figure data-cat="slime" data-label="mix-ins"><img src="assets/img/slime-3.jpg" loading="lazy" alt="Slime toppings"/></figure>
-      <figure data-cat="charm" data-label="the workshop"><img src="assets/img/charm-4.jpg" loading="lazy" alt="Bracelet making"/></figure>
-      <figure data-cat="slime" data-label="fresh batch"><img src="assets/img/slime-6.jpg" loading="lazy" alt="Slime creation"/></figure>
-      <figure data-cat="sensory" data-label="beach in a jar"><img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean explorer kit"/></figure>
-      <figure data-cat="slime" data-label="cherry on top"><img src="assets/img/slime-9.jpg" loading="lazy" alt="Slime sundae"/></figure>
-      <figure data-cat="charm" data-label="every charm"><img src="assets/img/charm-3.jpg" loading="lazy" alt="Charm supplies"/></figure>
-      <figure data-cat="slime" data-label="squish tested"><img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime play"/></figure>
+      <figure data-cat="slime" data-label="sundae slime"><img src="assets/img/slime-1.jpg" width="1125" height="1500" loading="lazy" alt="Sensory sundae slime"/></figure>
+      <figure data-cat="charm" data-label="charm bar"><img src="assets/img/charm-5.jpg" width="1125" height="1500" loading="lazy" alt="Charm bracelet close up"/></figure>
+      <figure data-cat="sensory" data-label="ocean explorer"><img src="assets/img/sensory-2.jpg" width="1125" height="1500" loading="lazy" alt="Sensory play jars"/></figure>
+      <figure data-cat="slime" data-label="slime magic"><img src="assets/img/slime-8.jpg" width="970" height="1293" loading="lazy" alt="Colorful slime"/></figure>
+      <figure data-cat="charm" data-label="bff bracelets"><img src="assets/img/charm-7.jpg" width="1098" height="1500" loading="lazy" alt="Finished charm bracelet"/></figure>
+      <figure data-cat="slime" data-label="mix-ins"><img src="assets/img/slime-3.jpg" width="941" height="1255" loading="lazy" alt="Slime toppings"/></figure>
+      <figure data-cat="charm" data-label="the workshop"><img src="assets/img/charm-4.jpg" width="1125" height="1500" loading="lazy" alt="Bracelet making"/></figure>
+      <figure data-cat="slime" data-label="fresh batch"><img src="assets/img/slime-6.jpg" width="984" height="1312" loading="lazy" alt="Slime creation"/></figure>
+      <figure data-cat="sensory" data-label="beach in a jar"><img src="assets/img/sensory-1.jpg" width="1125" height="1500" loading="lazy" alt="Ocean explorer kit"/></figure>
+      <figure data-cat="slime" data-label="cherry on top"><img src="assets/img/slime-9.jpg" width="941" height="1255" loading="lazy" alt="Slime sundae"/></figure>
+      <figure data-cat="charm" data-label="every charm"><img src="assets/img/charm-3.jpg" width="1125" height="1500" loading="lazy" alt="Charm supplies"/></figure>
+      <figure data-cat="slime" data-label="squish tested"><img src="assets/img/slime-5.jpg" width="956" height="1275" loading="lazy" alt="Slime play"/></figure>
     </div>
   </div>
 </section>
@@ -996,14 +1001,32 @@
     if(e.key === 'ArrowRight') show(cur + 1);
   });
 
-  // "View Investment" — scroll to the matching pricing card and pulse it
-  document.querySelectorAll('.invest').forEach(a => a.addEventListener('click', () => {
+  // "View Investment" — scroll to the matching pricing card, glow on arrival
+  document.querySelectorAll('.invest').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
     const card = document.getElementById(a.getAttribute('href').slice(1));
     if(!card) return;
-    setTimeout(() => {
+    history.replaceState(null, '', a.getAttribute('href'));
+    // reset any in-flight pulse so repeat clicks always replay
+    clearTimeout(card._pulseT);
+    clearTimeout(card._pulseFix);
+    if(card._pulseIO) card._pulseIO.disconnect();
+    card.classList.remove('spot');
+    void card.offsetWidth;
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+    // if late-loading content shifted the page mid-scroll, re-center on the card
+    card._pulseFix = setTimeout(() => {
+      const r = card.getBoundingClientRect();
+      if(r.top < 0 || r.bottom > innerHeight) card.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 1300);
+    // fire the glow the moment the card is actually in view (any device speed)
+    card._pulseIO = new IntersectionObserver((es, obs) => {
+      if(!es[0].isIntersecting) return;
+      obs.disconnect();
       card.classList.add('spot');
-      setTimeout(() => card.classList.remove('spot'), 2500);
-    }, 650);
+      card._pulseT = setTimeout(() => card.classList.remove('spot'), 3100);
+    }, {threshold:.55});
+    card._pulseIO.observe(card);
   }));
 
   // year + demo form
