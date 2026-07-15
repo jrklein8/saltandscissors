@@ -887,13 +887,13 @@
     <div class="book-panel reveal">
       <div class="book-grid">
         <div>
-          <span class="eyebrow" style="color:var(--sand)">Let's plan something fun</span>
-          <h2>Grab your date</h2>
-          <p class="lead">Tell us about your celebration — we'll reply within one business day with availability and a custom quote.</p>
+          <span class="eyebrow" style="color:var(--sand)">Your event starts here</span>
+          <h2>Let's Create Something Memorable</h2>
+          <p class="lead">Tell me a little about your celebration, and I'll send you availability and a custom quote within one business day.</p>
           <div class="contact-lines">
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></div><div><b>DM to book</b><span><a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" style="text-decoration:underline">@saltandscissors</a> on Instagram</span></div></div>
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><div><b>Email</b><span>hello@saltandscissorsco.com</span></div></div>
-            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><b>Serving</b><span>Wilmington, NC + beyond</span></div></div>
+            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></div><div><b>Instagram</b><span><a href="https://www.instagram.com/saltandscissors" target="_blank" rel="noopener" style="text-decoration:underline">@saltandscissors</a></span></div></div>
+            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><div><b>Email</b><span><a href="mailto:hello@saltandscissors.co" style="text-decoration:underline">hello@saltandscissors.co</a></span></div></div>
+            <div class="cline"><div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><b>Serving</b><span>Wilmington, NC + Beyond</span></div></div>
           </div>
         </div>
         <form onsubmit="handleSubmit(event)">
@@ -902,7 +902,7 @@
             <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@email.com" required/></div>
           </div>
           <div class="frow">
-            <div class="field"><label for="date">Event date</label><input id="date" type="date" required/></div>
+            <div class="field"><label for="date">Preferred Event Date</label><input id="date" type="date" required/></div>
             <div class="field"><label for="exp">Experience</label>
               <select id="exp">
                 <option>Coastal Creamery Sensory Sundaes</option><option>Charm Bar Experience</option><option>Sensory Scenes</option>
@@ -915,9 +915,9 @@
             <div class="field"><label for="kids"># of kids</label><input id="kids" type="number" min="1" placeholder="12"/></div>
             <div class="field"><label for="occ">Occasion</label><input id="occ" type="text" placeholder="Birthday, girls' night, shower…"/></div>
           </div>
-          <div class="field"><label for="msg">Tell us more</label><textarea id="msg" rows="3" placeholder="Theme, location, questions — anything helps!"></textarea></div>
-          <button type="submit" class="btn">Send my request →</button>
-          <p class="fnote" id="fnote">We'll never share your info. Reply within one business day.</p>
+          <div class="field"><label for="msg">Tell Me About Your Event</label><textarea id="msg" rows="3" placeholder="Theme, location, questions — anything helps!"></textarea></div>
+          <button type="submit" class="btn">Request My Quote →</button>
+          <p class="fnote" id="fnote">Your information will only be used to respond to your inquiry.</p>
         </form>
       </div>
     </div>
@@ -1029,14 +1029,44 @@
     card._pulseIO.observe(card);
   }));
 
-  // year + demo form
+  // year
   document.getElementById('year').textContent = new Date().getFullYear();
-  function handleSubmit(e){
+
+  // booking form → FormSubmit → inbox
+  async function handleSubmit(e){
     e.preventDefault();
-    const n = document.getElementById('fnote');
-    n.textContent = "Thanks! Your request is ready — connect this form to email or a booking tool to go live.";
-    n.style.color = "var(--sand)";
-    e.target.querySelector('button').textContent = "Request ready ✓";
+    const f = e.target;
+    const btn = f.querySelector('button');
+    const note = document.getElementById('fnote');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('https://formsubmit.co/ajax/saltandscissorscreativeco@gmail.com', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify({
+          _subject: 'New quote request — saltandscissors.co',
+          _template: 'table',
+          _captcha: 'false',
+          Name: document.getElementById('name').value,
+          Email: document.getElementById('email').value,
+          'Preferred Event Date': document.getElementById('date').value,
+          Experience: document.getElementById('exp').value,
+          'Number of Kids': document.getElementById('kids').value,
+          Occasion: document.getElementById('occ').value,
+          'About the Event': document.getElementById('msg').value,
+          email: document.getElementById('email').value
+        })
+      });
+      if(!res.ok) throw new Error('send failed');
+      btn.textContent = 'Request Sent ✓';
+      note.textContent = 'Thank you! Your request is on its way — expect a reply within one business day.';
+      note.style.color = 'var(--sand)';
+      f.reset();
+    } catch(err) {
+      btn.disabled = false; btn.textContent = 'Request My Quote →';
+      note.textContent = 'Hmm, something went wrong. Please try again — or DM @saltandscissors on Instagram.';
+      note.style.color = 'var(--sand)';
+    }
   }
 </script>
 </body>
