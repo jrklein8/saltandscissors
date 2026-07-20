@@ -191,6 +191,11 @@
   .invest:hover .arrow{transform:translateY(3px)}
   .pack[id]{scroll-margin-top:110px}
   .pack.spot{animation:spotring 3s ease}
+  @media(prefers-reduced-motion:reduce){
+    /* keep the price-card highlight functional without motion */
+    .pack.spot{animation:none;outline:3px solid var(--sand);outline-offset:4px;
+      box-shadow:0 0 22px 4px rgba(219,175,118,.55), 0 0 60px 18px rgba(219,175,118,.3)}
+  }
   @keyframes spotring{
     0%{outline:0 solid transparent;outline-offset:4px}
     18%,72%{outline:3px solid var(--sand);outline-offset:4px;
@@ -224,21 +229,35 @@
   .more-card h4{font-family:var(--disp);color:var(--slate);font-size:1.15rem;margin-bottom:.2rem}
   .more-card p{font-size:.9rem;color:var(--ink-soft)}
 
-  .stack{position:relative;aspect-ratio:4/4.6;max-width:440px;margin-inline:auto;width:100%}
+  .stack{position:relative;aspect-ratio:4/4.6;max-width:440px;margin-inline:auto;width:100%;
+    cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:pan-y}
   .stack img{
-    position:absolute;width:78%;height:82%;object-fit:cover;border-radius:10px;border:7px solid #fff;
-    box-shadow:0 22px 44px -20px rgba(var(--shadow),.5);transition:transform .55s cubic-bezier(.34,1.56,.64,1);
+    position:absolute;top:0;left:0;width:78%;height:82%;object-fit:cover;border-radius:10px;border:7px solid #fff;
+    box-shadow:0 22px 44px -20px rgba(var(--shadow),.5);
+    transition:transform .5s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
+    -webkit-user-drag:none;
   }
-  .stack img:nth-child(1){top:2%;left:0;transform:rotate(-7deg);z-index:1}
-  .stack img:nth-child(2){top:8%;right:0;transform:rotate(5deg);z-index:2}
-  .stack img:nth-child(3){bottom:0;left:10%;transform:rotate(-2deg);z-index:3}
-  .stack:hover img:nth-child(1){transform:rotate(-11deg) translate(-14px,-6px)}
-  .stack:hover img:nth-child(2){transform:rotate(9deg) translate(14px,-8px)}
-  .stack:hover img:nth-child(3){transform:rotate(-3deg) translateY(10px) scale(1.03)}
-  .stack.two img:nth-child(1){top:4%;left:2%;transform:rotate(-6deg)}
-  .stack.two img:nth-child(2){bottom:2%;right:2%;top:auto;transform:rotate(4deg)}
-  .stack.two:hover img:nth-child(1){transform:rotate(-9deg) translate(-12px,-8px)}
-  .stack.two:hover img:nth-child(2){transform:rotate(7deg) translate(12px,8px)}
+  /* polaroid slots — transform-only so every shuffle animates */
+  .stack img.s2,.stack img.sBack{transform:translate(0,2.4%) rotate(-7deg);z-index:1}
+  .stack img.sBack{z-index:0}
+  .stack img.s1{transform:translate(28.2%,9.8%) rotate(5deg);z-index:2}
+  .stack img.s0{transform:translate(12.8%,22%) rotate(-2deg);z-index:3}
+  .stack.two img.s1,.stack.two img.sBack{transform:translate(2.6%,4.9%) rotate(-6deg);z-index:1}
+  .stack.two img.s0{transform:translate(25.6%,19.5%) rotate(4deg);z-index:2}
+  .stack img.fly{transform:translate(-125%,8%) rotate(-26deg);opacity:0;z-index:5}
+  .stack img.snap{transition:none}
+  .stack::after{
+    content:"flip through!";position:absolute;bottom:-14px;left:50%;transform:translateX(-50%) rotate(-2deg);
+    font-family:var(--hand);font-size:1.15rem;color:var(--sand);pointer-events:none;
+  }
+  .stack-btn{
+    position:absolute;bottom:-12px;z-index:6;width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--sand);color:#513a1e;font-size:1.35rem;line-height:1;display:grid;place-items:center;
+    box-shadow:0 10px 22px -8px rgba(0,0,0,.35);transition:transform .2s;
+  }
+  .stack-btn:hover{transform:scale(1.12)}
+  .stack-prev{left:4px}
+  .stack-next{right:4px}
 
   /* wave divider */
   .wave{display:block;width:100%;height:64px;margin-bottom:-1px}
@@ -342,16 +361,37 @@
     padding:.4rem 1.2rem;border-radius:999px;box-shadow:0 8px 18px -8px rgba(0,0,0,.3);
   }
 
-  /* ============ NOTES (testimonials) ============ */
-  .notes{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8rem}
-  @media(max-width:860px){.notes{grid-template-columns:1fr;max-width:440px;margin-inline:auto}}
+  /* ============ NOTES (Google reviews carousel) ============ */
+  .notes-rail{position:relative}
+  .notes{
+    display:flex;gap:1.8rem;overflow-x:auto;scroll-snap-type:x mandatory;
+    padding:1.2rem .4rem 1.6rem;scrollbar-width:thin;scrollbar-color:var(--sand) transparent;
+  }
+  .notes::-webkit-scrollbar{height:8px}
+  .notes::-webkit-scrollbar-track{background:rgba(251,246,239,.08);border-radius:99px}
+  .notes::-webkit-scrollbar-thumb{background:var(--sand);border-radius:99px}
   .note{
+    flex:0 0 min(340px,82vw);scroll-snap-align:center;
     padding:2rem 1.7rem 1.7rem;border-radius:4px;position:relative;
     box-shadow:0 18px 38px -22px rgba(var(--shadow),.55);
-    font-family:var(--hand);font-size:1.45rem;line-height:1.4;color:#41504e;
+    font-family:var(--hand);font-size:1.4rem;line-height:1.4;color:#41504e;
     transition:transform .3s;
   }
   .note:hover{transform:scale(1.03) rotate(0deg)!important}
+  .note .via{display:block;margin-top:.2rem;font-family:var(--body);font-weight:700;font-size:.76rem;color:#6b7a78;letter-spacing:.04em}
+  .rail-btn{
+    position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+    width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--sand);color:#513a1e;font-size:1.5rem;line-height:1;
+    box-shadow:0 12px 26px -10px rgba(0,0,0,.4);transition:transform .2s;
+    display:grid;place-items:center;
+  }
+  .rail-btn:hover{transform:translateY(-50%) scale(1.08)}
+  .rail-prev{left:-10px}
+  .rail-next{right:-10px}
+  @media(max-width:640px){.rail-btn{display:none}}
+  .rev-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.6rem}
+  .g-badge{display:inline-flex;align-items:center;gap:.5rem;justify-content:center;font-weight:800;color:var(--sand);letter-spacing:.06em;font-size:.95rem;margin-top:.4rem}
   .note::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(2deg);width:110px;height:30px;background:rgba(254,255,255,.55);box-shadow:0 2px 6px rgba(0,0,0,.08)}
   .note .stars{font-size:1rem;letter-spacing:.18em;color:var(--terra);display:block;margin-bottom:.5rem}
   .note .who{display:block;margin-top:1rem;font-family:var(--body);font-weight:800;font-size:.85rem;color:var(--slate)}
@@ -538,6 +578,8 @@
           <img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime mixing in progress"/>
           <img src="assets/img/slime-8.jpg" loading="lazy" alt="Finished colorful slime"/>
           <img src="assets/img/slime-1.jpg" loading="lazy" alt="Coastal Creamery sensory sundae with cherry"/>
+          <img src="assets/img/slime-2.jpg" loading="lazy" alt="Sensory sundae slime cup"/>
+          <img src="assets/img/slime-7.jpg" loading="lazy" alt="Slime sundae creation"/>
         </div>
       </div>
       <div class="reveal d1">
@@ -564,6 +606,8 @@
           <img src="assets/img/charm-4.jpg" loading="lazy" alt="Charm bracelet building"/>
           <img src="assets/img/charm-7.jpg" loading="lazy" alt="Finished charm bracelet"/>
           <img src="assets/img/charm-1.jpg" loading="lazy" alt="Charm bracelet on wrist"/>
+          <img src="assets/img/charm-3.jpg" loading="lazy" alt="Charm bar display with bracelets"/>
+          <img src="assets/img/charm-5.jpg" loading="lazy" alt="Charm selection trays"/>
         </div>
       </div>
       <div class="reveal d1">
@@ -757,7 +801,7 @@
         <div class="ribbon">Most Popular</div>
         <h3>Coastal Creamery</h3>
         <div class="for">starting at</div>
-        <div class="price">$350 <small>· up to 15 guests</small></div>
+        <div class="price">$350 <small>· includes 15 guests</small></div>
         <ul>
           <li>Create your own themed slime</li>
           <li>90-minute hosted experience</li>
@@ -769,7 +813,7 @@
       <div class="pack reveal d1" id="price-canvas">
         <h3>Canvas Painting</h3>
         <div class="for">starting at</div>
-        <div class="price">$225 <small>· up to 10 guests</small></div>
+        <div class="price">$225 <small>· includes 10 guests</small></div>
         <ul>
           <li>Step-by-step creative fun</li>
           <li>90-minute hosted experience</li>
@@ -781,7 +825,7 @@
       <div class="pack reveal d2" id="price-charm">
         <h3>Charm Bar</h3>
         <div class="for">starting at</div>
-        <div class="price">$325 <small>· up to 15 guests</small></div>
+        <div class="price">$325 <small>· includes 15 guests</small></div>
         <ul>
           <li>Design your own jewelry</li>
           <li>90-minute hosted experience</li>
@@ -793,7 +837,7 @@
       <div class="pack reveal" id="price-scenes">
         <h3>Sensory Scenes</h3>
         <div class="for">starting at</div>
-        <div class="price">$275 <small>· up to 10 guests</small></div>
+        <div class="price">$275 <small>· includes 10 guests</small></div>
         <ul>
           <li>Build an imaginative themed world</li>
           <li>90-minute hosted experience</li>
@@ -805,7 +849,7 @@
       <div class="pack reveal d1" id="price-patch">
         <h3>DIY Patch Party</h3>
         <div class="for">starting at</div>
-        <div class="price">$325 <small>· up to 15 guests</small></div>
+        <div class="price">$325 <small>· includes 15 guests</small></div>
         <ul>
           <li>Customize hats &amp; accessories</li>
           <li>90-minute hosted experience</li>
@@ -827,6 +871,7 @@
         <a href="#book" class="btn btn-ghost">Request a Custom Quote</a>
       </div>
     </div>
+    <p style="text-align:center;margin-top:2.4rem"><span class="pack-note" style="margin:0">&#x270F;&#xFE0E; Have a bigger crew? Every experience welcomes extra guests for a small per-guest rate — just ask when you book!</span></p>
   </div>
 </section>
 
@@ -836,11 +881,22 @@
     <div class="sec-head reveal">
       <span class="eyebrow" style="justify-content:center">Kind words</span>
       <h2>Straight from the fridge door</h2>
+      <span class="g-badge">★★★★★ &nbsp;5.0 on Google</span>
     </div>
-    <div class="notes">
-      <div class="note n1 reveal"><span class="stars">★★★★★</span>"The slime bar was the hit of the whole party — my daughter is STILL talking about it a month later!"<span class="who">— Megan R., birthday mom</span></div>
-      <div class="note n2 reveal d1"><span class="stars">★★★★★</span>"Truly turnkey. They ran the charm station like pros and left our house cleaner than they found it."<span class="who">— Danielle P., host mom</span></div>
-      <div class="note n3 reveal d2"><span class="stars">★★★★★</span>"60 kids made bracelets at our school fair without a single dull moment. Wonderful humans."<span class="who">— Ms. Alvarez, PTA coordinator</span></div>
+    <div class="notes-rail reveal">
+      <button class="rail-btn rail-prev" aria-label="Previous reviews">‹</button>
+      <div class="notes" id="notesRail">
+        <div class="note n1"><span class="stars">★★★★★</span>"The absolute cutest idea for parties! They were soo helpful and made it such a great experience. Couldn't recommend enough!"<span class="who">— Maggie Phelps</span><span class="via">Google review</span></div>
+        <div class="note n2"><span class="stars">★★★★★</span>"This is such a creative business! It's everything you see online and say &ldquo;I wish I had something like that for my party!&rdquo; Becky is so sweet and personal, it really makes all the difference! Definitely will be booking her for every party!!!!"<span class="who">— Jamie Barricelli</span><span class="via">Google review</span></div>
+        <div class="note n3"><span class="stars">★★★★★</span>"Talk about the perfect thing for kids of all ages!!! Salt &amp; Scissors has thought of every detail for cute fun for kids. Bonus points for time to myself bc my kids are entertained for hours w what they created!"<span class="who">— Melissa Manzo</span><span class="via">Google review</span></div>
+        <div class="note n1"><span class="stars">★★★★★</span>"I had the best experience with salt &amp; scissors and the owner, Becky is such an angel. My friend hosted a galentines party with our little girls and myself and my daughter were able to create matching charm bracelets. Becky was so helpful, had everything we could need, and so fun. 10/10 recommend for any parties !!"<span class="who">— Taryn Choufani</span><span class="via">Google review</span></div>
+        <div class="note n2"><span class="stars">★★★★★</span>"We came to the salt and scissors slime pop up shop, all three of my kids had so much fun customizing their own slime sundae and when they went home they played with it for hours! We will be back!"<span class="who">— Rachel Eddington</span><span class="via">Google review</span></div>
+      </div>
+      <button class="rail-btn rail-next" aria-label="More reviews">›</button>
+    </div>
+    <div class="rev-actions reveal">
+      <a class="btn btn-ghost" href="https://share.google/j8IzZwebcc90v9PtX" target="_blank" rel="noopener">Read all reviews on Google</a>
+      <a class="btn btn-primary" href="https://share.google/j8IzZwebcc90v9PtX" target="_blank" rel="noopener">★ Leave us a review</a>
     </div>
   </div>
 </section>
@@ -1029,6 +1085,70 @@
     card._pulseIO.observe(card);
   }));
 
+  // polaroid stacks — flip through photos (tap/click, swipe, arrows)
+  document.querySelectorAll('.stack').forEach(stack => {
+    const imgs = [...stack.querySelectorAll('img')];
+    if(imgs.length < 2) return;
+    let order = imgs.map((_, i) => i), busy = false, swiped = 0;
+    const apply = () => order.forEach((idx, pos) => {
+      const el = imgs[idx];
+      el.classList.remove('s0','s1','s2','sBack');
+      el.classList.add(pos === 0 ? 's0' : pos === 1 ? 's1' : pos === 2 ? 's2' : 'sBack');
+    });
+    const next = () => {
+      if(busy) return; busy = true;
+      const front = imgs[order[0]];
+      front.classList.add('fly');
+      setTimeout(() => {
+        front.classList.add('snap');
+        front.classList.remove('fly');
+        order.push(order.shift());
+        apply();
+        void front.offsetWidth;
+        front.classList.remove('snap');
+        busy = false;
+      }, 360);
+    };
+    const prev = () => {
+      if(busy) return; busy = true;
+      const el = imgs[order[order.length - 1]];
+      el.classList.add('snap','fly');
+      order.unshift(order.pop());
+      apply();
+      void el.offsetWidth;
+      el.classList.remove('snap');
+      el.classList.remove('fly');
+      setTimeout(() => busy = false, 420);
+    };
+    stack.addEventListener('click', e => {
+      if(e.target.closest('.stack-btn')) return;
+      if(Date.now() - swiped < 500) return;
+      next();
+    });
+    let sx = null, sy = null;
+    stack.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+    stack.addEventListener('touchend', e => {
+      if(sx === null) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){ swiped = Date.now(); (dx < 0 ? next() : prev()); }
+      sx = null;
+    }, {passive:true});
+    const mkBtn = (cls, glyph, fn, label) => {
+      const b = document.createElement('button');
+      b.className = 'stack-btn ' + cls; b.innerHTML = glyph; b.setAttribute('aria-label', label);
+      b.addEventListener('click', e => { e.stopPropagation(); fn(); });
+      stack.appendChild(b);
+    };
+    mkBtn('stack-prev','‹', prev, 'Previous photo');
+    mkBtn('stack-next','›', next, 'Next photo');
+    apply();
+  });
+
+  // reviews rail arrows
+  const rail = document.getElementById('notesRail');
+  document.querySelector('.rail-prev').addEventListener('click', () => rail.scrollBy({left:-368, behavior:'smooth'}));
+  document.querySelector('.rail-next').addEventListener('click', () => rail.scrollBy({left:368, behavior:'smooth'}));
+
   // year
   document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -1057,7 +1177,8 @@
           email: document.getElementById('email').value
         })
       });
-      if(!res.ok) throw new Error('send failed');
+      const data = await res.json().catch(() => null);
+      if(!res.ok || !data || String(data.success) !== 'true') throw new Error((data && data.message) || 'send failed');
       btn.textContent = 'Request Sent ✓';
       note.textContent = 'Thank you! Your request is on its way — expect a reply within one business day.';
       note.style.color = 'var(--sand)';
