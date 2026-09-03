@@ -1,0 +1,13 @@
+{
+  "name": "Salt & Scissors Studio",
+  "short_name": "S&S Studio",
+  "description": "Client & event tracker for Salt & Scissors Creative Co.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FBF6EF",
+  "theme_color": "#536665",
+  "icons": [
+    { "src": "assets/logo-full.png", "sizes": "1217x541", "type": "image/png", "purpose": "any" }
+  ]
+}
