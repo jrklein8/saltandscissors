@@ -76,6 +76,31 @@ function attachDraft(form, key){
   return restored;
 }
 const clearDraft = key => localStorage.removeItem(key);
+
+/* receipt photos — shrink phone photos before upload (≤1600px JPEG) */
+async function compressImage(file, max = 1600, q = 0.8){
+  let bmp = null;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch(e){ try { bmp = await createImageBitmap(file); } catch(e2){ return file; } }
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return await new Promise(res => c.toBlob(b => res(b || file), 'image/jpeg', q));
+}
+const fileToDataURL = blob => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+
+/* what an event truly cost — money is counted ONCE:
+   items linked to a receipt are detail (the receipt's subtotal is the spend);
+   loose items with no receipt count directly; shipping + tax come from receipts */
+function eventCosts(expenses, receipts){
+  const byReceipt = {};
+  expenses.forEach(x => { if(x.receipt_id) byReceipt[x.receipt_id] = (byReceipt[x.receipt_id] || 0) + num(x.cost); });
+  const receipted = receipts.reduce((t, r) => t + (num(r.subtotal) || num(byReceipt[r.id] || 0)), 0);
+  const loose = expenses.filter(x => !x.receipt_id).reduce((t, x) => t + num(x.cost), 0);
+  const supplies = receipted + loose;
+  const shipTax = receipts.reduce((t, r) => t + num(r.shipping) + num(r.tax), 0);
+  return { supplies, shipTax, trueCost: supplies + shipTax, byReceipt };
+}
+const VENDORS = ['Amazon','Target','Walmart','Michaels','Hobby Lobby','Dollar Tree','Costco','Etsy'];
 let toastT; const toast = msg => { let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); };
 
 /* ============================================================
@@ -86,8 +111,13 @@ function seedDemo(){
   const iso = (dd, mo=m) => { const x = new Date(y, mo, dd); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
   const now = new Date().toISOString();
   const e1 = uid(), e2 = uid(), e3 = uid(), e4 = uid(), e5 = uid(), e6 = uid();
+  const r1 = uid(), r2 = uid();
   return {
     settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+    receipts: [
+      { id:r1, event_id:e5, vendor:'Amazon', receipt_date: iso(d.getDate()-14), subtotal:73.70, shipping:0, tax:5.16, notes:'Order #112-4471', created_at:now },
+      { id:r2, event_id:e6, vendor:'Target', receipt_date: iso(d.getDate()-24), subtotal:28.00, shipping:0, tax:1.96, notes:'', created_at:now },
+    ],
     events: [
       { id:e1, status:'booked', client_name:'Lauren M.', client_contact:'@laurenmakes', source:'Instagram', occasion:'Birthday', honoree:'Harper, turning 7', experience:'Coastal Creamery', guest_count:18, event_date: iso(d.getDate()+5), event_time:'14:00', location:'Backyard, Ogden', theme:'Mermaid / under the sea', notes:'Nut-free please. Mom will text gate code.', price_lines:[{label:'Coastal Creamery (includes 15)',amount:350},{label:'3 extra guests × $15',amount:45}], price_quoted:395, price_agreed:395, deposit:100, deposit_paid:true, paid_in_full:false, created_at:now, updated_at:now },
       { id:e2, status:'inquiry', client_name:'Danielle P.', client_contact:'danielle.p@email.com', source:'Website form', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:8, event_date: iso(d.getDate()+19), event_time:'19:00', location:'Wrightsville Beach', theme:'Galentine-ish, gold & pink', notes:'Asked if wine is okay — yes, adults only.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
@@ -97,10 +127,10 @@ function seedDemo(){
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
     ],
     expenses: [
-      { id:uid(), event_id:e5, item:'Gold chains (25 pk)', cost:42.50, store:'Amazon', created_at:now },
-      { id:uid(), event_id:e5, item:'Letter charms', cost:31.20, store:'Amazon', created_at:now },
-      { id:uid(), event_id:e5, item:'Jewelry bags', cost:9.99, store:'Michaels', created_at:now },
-      { id:uid(), event_id:e6, item:'Kinetic sand (6 lb)', cost:28.00, store:'Target', created_at:now },
+      { id:uid(), event_id:e5, item:'Gold chains (25 pk)', cost:42.50, store:'Amazon', receipt_id:r1, created_at:now },
+      { id:uid(), event_id:e5, item:'Letter charms', cost:31.20, store:'Amazon', receipt_id:r1, created_at:now },
+      { id:uid(), event_id:e5, item:'Jewelry bags', cost:9.99, store:'Michaels', receipt_id:null, created_at:now },
+      { id:uid(), event_id:e6, item:'Kinetic sand (6 lb)', cost:28.00, store:'Target', receipt_id:r2, created_at:now },
       { id:uid(), event_id:e6, item:'Dino figurines', cost:16.75, store:'Amazon', created_at:now },
       { id:uid(), event_id:e6, item:'Jars w/ lids (12)', cost:22.40, store:'Amazon', created_at:now },
       { id:uid(), event_id:e1, item:'Sundae cups + lids (25)', cost:19.80, store:'Amazon', created_at:now },
@@ -124,6 +154,11 @@ class LocalDB {
   async listExpenses(eventId){ return this.d.expenses.filter(x => !eventId || x.event_id === eventId).map(x => ({...x})); }
   async addExpense(x){ x.id = uid(); x.created_at = new Date().toISOString(); this.d.expenses.push(x); this.save(); return {...x}; }
   async deleteExpense(id){ this.d.expenses = this.d.expenses.filter(x => x.id !== id); this.save(); }
+  async updateExpense(id, patch){ const x = this.d.expenses.find(e => e.id === id); if(x) Object.assign(x, patch); this.save(); }
+  async listReceipts(eventId){ return (this.d.receipts||[]).filter(r => !eventId || r.event_id === eventId).map(r => ({...r})); }
+  async addReceipt(r, file){ r.id = uid(); r.created_at = new Date().toISOString(); if(file){ r.image_data = await fileToDataURL(await compressImage(file)); } (this.d.receipts = this.d.receipts || []).push(r); this.save(); return {...r}; }
+  async deleteReceipt(id){ this.d.receipts = (this.d.receipts||[]).filter(r => r.id !== id); this.d.expenses.forEach(x => { if(x.receipt_id === id) x.receipt_id = null; }); this.save(); }
+  async receiptUrl(r){ return r.image_data || null; }
   async listChecklist(eventId){ return this.d.checklist.filter(x => x.event_id === eventId).sort((a,b) => a.sort - b.sort).map(x => ({...x})); }
   async addChecklist(items){ items.forEach(it => { it.id = uid(); this.d.checklist.push(it); }); this.save(); return items; }
   async toggleChecklist(id, done){ const it = this.d.checklist.find(x => x.id === id); if(it) it.done = done; this.save(); }
@@ -143,6 +178,25 @@ class SupaDB {
   async listExpenses(eventId){ let q = this.sb.from('expenses').select('*').order('created_at'); if(eventId) q = q.eq('event_id', eventId); const { data, error } = await q; if(error) throw error; return data; }
   async addExpense(x){ const { data, error } = await this.sb.from('expenses').insert(x).select().single(); if(error) throw error; return data; }
   async deleteExpense(id){ const { error } = await this.sb.from('expenses').delete().eq('id', id); if(error) throw error; }
+  async updateExpense(id, patch){ const { error } = await this.sb.from('expenses').update(patch).eq('id', id); if(error) throw error; }
+  async listReceipts(eventId){ let q = this.sb.from('receipts').select('*').order('receipt_date', {ascending:false}); if(eventId) q = q.eq('event_id', eventId); const { data, error } = await q; if(error) throw error; return data; }
+  async addReceipt(r, file){
+    const { data, error } = await this.sb.from('receipts').insert(r).select().single(); if(error) throw error;
+    if(!file) return data;
+    const blob = await compressImage(file);
+    const { data:{ user } } = await this.sb.auth.getUser();
+    const path = `${user.id}/${data.id}.jpg`;
+    const up = await this.sb.storage.from('receipts').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+    if(up.error) throw up.error;
+    const { data: d2, error: e2 } = await this.sb.from('receipts').update({ image_path: path }).eq('id', data.id).select().single(); if(e2) throw e2;
+    return d2;
+  }
+  async deleteReceipt(id){
+    const { data } = await this.sb.from('receipts').select('image_path').eq('id', id).maybeSingle();
+    if(data && data.image_path) await this.sb.storage.from('receipts').remove([data.image_path]);
+    const { error } = await this.sb.from('receipts').delete().eq('id', id); if(error) throw error;
+  }
+  async receiptUrl(r){ if(!r.image_path) return null; const { data } = await this.sb.storage.from('receipts').createSignedUrl(r.image_path, 3600); return data ? data.signedUrl : null; }
   async listChecklist(eventId){ const { data, error } = await this.sb.from('checklist').select('*').eq('event_id', eventId).order('sort'); if(error) throw error; return data; }
   async addChecklist(items){ const { data, error } = await this.sb.from('checklist').insert(items).select(); if(error) throw error; return data; }
   async toggleChecklist(id, done){ const { error } = await this.sb.from('checklist').update({ done }).eq('id', id); if(error) throw error; }
@@ -201,10 +255,14 @@ async function boot(){
 async function refresh(){
   S.settings = await S.db.getSettings();
   S.events = await S.db.listEvents();
-  // supplies totals per event (used by Money + profit lines)
-  const all = await S.db.listExpenses();
-  const by = {}; all.forEach(x => { by[x.event_id] = (by[x.event_id] || 0) + num(x.cost); });
-  S._spendByEvent = by;
+  // true cost per event (supplies counted once + shipping/tax) for Money + exports
+  const [all, recs] = await Promise.all([S.db.listExpenses(), S.db.listReceipts()]);
+  const xs = {}, rs = {};
+  all.forEach(x => (xs[x.event_id] = xs[x.event_id] || []).push(x));
+  recs.forEach(r => (rs[r.event_id] = rs[r.event_id] || []).push(r));
+  S._costByEvent = {}; S._spendByEvent = {};
+  new Set([...Object.keys(xs), ...Object.keys(rs)]).forEach(id => { const c = eventCosts(xs[id] || [], rs[id] || []); S._costByEvent[id] = c; S._spendByEvent[id] = c.trueCost; });
+  S._allReceipts = recs;
 }
 
 /* ============================================================
@@ -371,9 +429,12 @@ function viewEvents(q){
 async function viewEvent(id){
   const e = S.events.find(x => x.id === id);
   if(!e) return `<div class="empty"><span class="hand">can't find that one</span><a href="#/events">Back to events</a></div>`;
-  const [expenses, checklist] = await Promise.all([S.db.listExpenses(id), S.db.listChecklist(id)]);
-  const spend = expenses.reduce((t,x) => t + num(x.cost), 0);
+  const [expenses, checklist, receipts] = await Promise.all([S.db.listExpenses(id), S.db.listChecklist(id), S.db.listReceipts(id)]);
+  const urls = {}; await Promise.all(receipts.map(async r => { urls[r.id] = await S.db.receiptUrl(r); }));
+  const costs = eventCosts(expenses, receipts);
+  const spend = costs.trueCost;
   const agreed = num(e.price_agreed), bal = balanceOf(e), profit = agreed - spend;
+  const rlabel = r => `${r.vendor || 'Receipt'} · ${fmtDate(r.receipt_date)}`;
   const doneCount = checklist.filter(c => c.done).length;
   const contact = esc(e.client_contact || '');
   const contactLink = !e.client_contact ? '' : /^@/.test(e.client_contact) ? `<a href="https://instagram.com/${esc(e.client_contact.slice(1))}" target="_blank" rel="noopener">${contact}</a>` : /@.+\./.test(e.client_contact) ? `<a href="mailto:${contact}">${contact}</a>` : /\d{3}/.test(e.client_contact) ? `<a href="tel:${esc(e.client_contact.replace(/[^\d+]/g,''))}">${contact}</a>` : contact;
@@ -400,7 +461,15 @@ async function viewEvent(id){
 
     <div class="card">
       <div class="between"><h3>Money</h3>${e.paid_in_full?'<span class="pill paid">paid in full</span>':bal>0?`<span class="pill due">${money(bal)} due</span>`:''}</div>
-      ${(e.price_lines&&e.price_lines.length)?`<ul class="list" style="margin:.3rem 0 .5rem">${e.price_lines.map(l=>`<li><span class="grow small">${esc(l.label)}</span><b>${money(l.amount)}</b></li>`).join('')}</ul>`:''}
+      ${agreed?`<div class="summary">
+        <div class="srow"><span>Agreed total</span><b>${money(agreed)}</b></div>
+        <div class="srow"><span>${e.paid_in_full?'Collected (paid in full)':'Deposit collected'}</span><b>${money(collectedOf(e))}</b></div>
+        <div class="srow"><button type="button" class="linkish" data-action="jump" data-target="supplies">Supplies</button><b>${money2(costs.supplies)}</b></div>
+        <div class="srow"><span>Shipping &amp; tax</span><b>${money2(costs.shipTax)}</b></div>
+        <div class="srow total"><span>True event cost</span><b>${money2(costs.trueCost)}</b></div>
+        <div class="srow profit"><span>Projected profit</span><b class="${profit>=0?'pos':'neg'}">${money2(profit)}</b></div>
+      </div>`:''}
+      ${(e.price_lines&&e.price_lines.length)?`<div class="tiny muted" style="margin-top:.6rem">Package</div><ul class="list" style="margin:0 0 .5rem">${e.price_lines.map(l=>`<li><span class="grow small">${esc(l.label)}</span><b>${money(l.amount)}</b></li>`).join('')}</ul>`:''}
       <div class="grid2" style="margin:.4rem 0 .6rem">
         <div><div class="tiny muted">Quoted</div><div class="money">${e.price_quoted!=null&&e.price_quoted!==''?money(e.price_quoted):'—'}</div></div>
         <div><div class="tiny muted">Agreed</div><div class="money">${agreed?money(agreed):'—'}</div></div>
@@ -410,12 +479,39 @@ async function viewEvent(id){
       ${agreed?`<div class="between mt"><span class="small muted">Collected so far</span><b>${money(collectedOf(e))}</b></div>`:''}
     </div>
 
-    <div class="card">
-      <div class="between"><h3>Supplies for this event</h3><span class="money">${money2(spend)}</span></div>
-      ${expenses.length ? `<ul class="list">${expenses.map(x=>`<li><div class="grow"><div>${esc(x.item)}</div>${x.store?`<div class="tiny muted">${esc(x.store)}</div>`:''}</div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted">Nothing bought yet. Add what you pick up for this party.</p>`}
+    <div class="card" id="supplies">
+      <div class="between"><h3>Receipts &amp; orders</h3><span class="money">${money2(costs.trueCost)}</span></div>
+      <p class="tiny muted" style="margin:0 0 .3rem">Actual spend. Snap the receipt or Amazon order — subtotal, shipping and tax roll into the true event cost.</p>
+      ${receipts.length ? receipts.map(r => { const linked = costs.byReceipt[r.id]||0; const sub = num(r.subtotal) || linked; return `<div class="receipt">
+        ${urls[r.id]?`<a href="${urls[r.id]}" target="_blank" rel="noopener"><img src="${urls[r.id]}" alt="Receipt"/></a>`:`<div class="rthumb">no<br/>photo</div>`}
+        <div class="grow"><div><b>${esc(r.vendor||'Receipt')}</b> <span class="tiny muted">${fmtDate(r.receipt_date)}</span></div>
+          <div class="tiny muted">items ${money2(sub)}${!num(r.subtotal)&&linked?' (from linked items)':''} · ship ${money2(r.shipping)} · tax ${money2(r.tax)}${linked?` · ${expenses.filter(x=>x.receipt_id===r.id).length} linked`:''}</div>
+          ${r.notes?`<div class="tiny muted">${esc(r.notes)}</div>`:''}</div>
+        <b>${money2(sub + num(r.shipping) + num(r.tax))}</b>
+        <button class="iconbtn" data-action="del-receipt" data-id="${r.id}" aria-label="Remove receipt">×</button>
+      </div>`; }).join('') : ''}
+      <details class="addbox mt"><summary class="btn soft sm">+ Add receipt / order</summary>
+        <form id="receiptForm" class="mt">
+          <div class="grid2">
+            <div><label>Store / vendor</label><input name="vendor" list="vendorList" placeholder="Amazon"/><datalist id="vendorList">${VENDORS.map(v=>`<option value="${v}">`).join('')}</datalist></div>
+            <div><label>Date</label><input name="receipt_date" type="date" value="${todayISO()}"/></div>
+          </div>
+          <div class="grid3">
+            <div><label>Items subtotal</label><input name="subtotal" type="number" step="0.01" min="0" placeholder="0.00"/></div>
+            <div><label>Shipping</label><input name="shipping" type="number" step="0.01" min="0" placeholder="0.00"/></div>
+            <div><label>Tax</label><input name="tax" type="number" step="0.01" min="0" placeholder="0.00"/></div>
+          </div>
+          <label>Photo of receipt (optional)</label><input name="photo" type="file" accept="image/*" capture="environment"/>
+          <label>Notes</label><input name="notes" placeholder="Order #, what it was for…"/>
+          <button class="btn sand sm mt" type="submit">Save receipt</button>
+        </form>
+      </details>
+
+      <div class="between" style="margin-top:1.2rem"><h3 style="margin:0">Items</h3><span class="tiny muted">what each package costs to make</span></div>
+      ${expenses.length ? `<ul class="list">${expenses.map(x=>`<li><div class="grow"><div>${esc(x.item)}</div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}" ${x.receipt_id===r.id?'selected':''}>${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted">Nothing itemized yet. Add what you bought for this party.</p>`}
       <form class="inline-form" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Sundae cups (25)" required/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
-      <input name="store" id="expenseStore" placeholder="Where (optional) — Amazon, Target…" style="margin-top:.5rem"/>
-      ${agreed?`<div class="between mt" style="border-top:1px solid var(--line);padding-top:.7rem"><span class="small"><b>Profit</b> <span class="tiny muted">agreed − supplies</span></span><span class="money ${profit>=0?'pos':'neg'}">${money2(profit)}</span></div>`:''}
+      <div class="grid2" style="margin-top:.5rem"><input name="store" id="expenseStore" placeholder="Where (optional)"/>${receipts.length?`<select id="expenseReceipt"><option value="">Link to receipt…</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:''}</div>
+      <p class="tiny muted" style="margin:.5rem 0 0">Items linked to a receipt are detail — the receipt's subtotal is what counts. Unlinked items count on their own.</p>
     </div>
 
     <div class="card">
@@ -540,18 +636,18 @@ function viewMoney(q){
     <div class="stats">
       <div class="stat cool"><div class="n">${money(rev)}</div><div class="l">agreed revenue</div></div>
       <div class="stat"><div class="n">${money(col)}</div><div class="l">collected</div></div>
-      <div class="stat warm"><div class="n">${money2(spend)}</div><div class="l">supplies spent</div></div>
+      <div class="stat warm"><div class="n">${money2(spend)}</div><div class="l">true cost</div></div>
       <div class="stat"><div class="n ${rev-spend>=0?'pos':'neg'}">${money(rev-spend)}</div><div class="l">profit</div></div>
     </div>
     <div class="card">
-      ${inMonth.length ? `<table class="tbl"><tr><th>Event</th><th class="r">Agreed</th><th class="r">Supplies</th><th class="r">Profit</th></tr>
+      ${inMonth.length ? `<table class="tbl"><tr><th>Event</th><th class="r">Agreed</th><th class="r">Cost</th><th class="r">Profit</th></tr>
         ${inMonth.map(e => `<tr><td><a href="#/event/${e.id}" style="text-decoration:none"><b>${esc(e.client_name)}</b></a><div class="tiny muted">${fmtDate(e.event_date)} · ${esc(e.experience||'')}${balanceOf(e)>0?' · <span class="neg">'+money(balanceOf(e))+' due</span>':''}</div></td><td class="r">${money(e.price_agreed)}</td><td class="r">${money2(spendBy[e.id]||0)}</td><td class="r ${num(e.price_agreed)-num(spendBy[e.id])>=0?'pos':'neg'}">${money2(num(e.price_agreed)-num(spendBy[e.id]))}</td></tr>`).join('')}</table>`
         : `<div class="empty"><span class="hand">no booked events this month</span></div>`}
     </div>
     <div class="card">
       <h3>All time</h3>
       <div class="between small"><span class="muted">Agreed revenue</span><b>${money(allRev)}</b></div>
-      <div class="between small"><span class="muted">Supplies spent</span><b>${money2(allSpend)}</b></div>
+      <div class="between small"><span class="muted">True cost (supplies + shipping/tax)</span><b>${money2(allSpend)}</b></div>
       <div class="between small"><span class="muted">Profit</span><b class="${allRev-allSpend>=0?'pos':'neg'}">${money2(allRev-allSpend)}</b></div>
       <div class="between small"><span class="muted">Still owed to you</span><b class="neg">${money(owed)}</b></div>
       <button class="btn ghost sm mt" data-action="export">Export CSV for taxes</button>
@@ -604,6 +700,8 @@ function bind(r){
     if(a === 'month') return go('#/money?m=' + el.dataset.m);
     if(a === 'status'){ ev.preventDefault(); const e = S.events.find(x => x.id === r.id); e.status = el.dataset.status; await S.db.saveEvent(e); toast('Moved to ' + e.status); return render(); }
     if(a === 'del-expense'){ ev.preventDefault(); await S.db.deleteExpense(el.dataset.id); return render(); }
+    if(a === 'del-receipt'){ ev.preventDefault(); if(!confirm('Remove this receipt? Linked items stay, just unlinked.')) return; await S.db.deleteReceipt(el.dataset.id); toast('Receipt removed'); return render(); }
+    if(a === 'jump'){ const t = document.getElementById(el.dataset.target); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); return; }
     if(a === 'del-check'){ ev.preventDefault(); await S.db.deleteChecklist(el.dataset.id); return render(); }
     if(a === 'load-packing' || a === 'load-packing-for'){
       const e = S.events.find(x => x.id === r.id); const s = S.settings;
@@ -623,6 +721,7 @@ function bind(r){
   app.onchange = async ev => {
     const el = ev.target.closest('[data-action]'); if(!el) return;
     if(el.dataset.action === 'toggle'){ const e = S.events.find(x => x.id === r.id); e[el.dataset.field] = el.checked; if(el.dataset.field==='paid_in_full' && el.checked) e.deposit_paid = true; await S.db.saveEvent(e); toast(el.checked ? 'Marked ' + (el.dataset.field==='paid_in_full'?'paid in full':'deposit received') : 'Updated'); return render(); }
+    if(el.dataset.action === 'link-receipt'){ await S.db.updateExpense(el.dataset.id, { receipt_id: el.value || null }); toast(el.value ? 'Linked to receipt' : 'Unlinked'); return render(); }
     if(el.dataset.action === 'check'){ await S.db.toggleChecklist(el.dataset.id, el.checked); el.closest('.check').classList.toggle('done', el.checked); const all = $$('.check input'); const d = all.filter(i => i.checked).length; const bar = $('.progress i'); if(bar) bar.style.width = Math.round(d/all.length*100) + '%'; const cnt = $('.card .between .tiny.muted'); return; }
   };
 
@@ -677,7 +776,15 @@ function bind(r){
 
   // expense form
   const xf = $('#expenseForm');
-  if(xf) xf.onsubmit = async e => { e.preventDefault(); const f = new FormData(xf); await S.db.addExpense({ event_id: r.id, item: f.get('item').trim(), cost: num(f.get('cost')), store: ($('#expenseStore').value||'').trim() }); toast('Added'); render(); };
+  if(xf) xf.onsubmit = async e => { e.preventDefault(); const f = new FormData(xf); const rsel = $('#expenseReceipt'); await S.db.addExpense({ event_id: r.id, item: f.get('item').trim(), cost: num(f.get('cost')), store: ($('#expenseStore').value||'').trim(), receipt_id: (rsel && rsel.value) ? rsel.value : null }); toast('Added'); render(); };
+  const rf = $('#receiptForm');
+  if(rf) rf.onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(rf); const btn = rf.querySelector('button'); btn.disabled = true; btn.textContent = 'Saving…';
+    const file = rf.elements.photo.files[0] || null;
+    const rec = { event_id: r.id, vendor: (f.get('vendor')||'').trim(), receipt_date: f.get('receipt_date') || null, subtotal: num(f.get('subtotal')), shipping: num(f.get('shipping')), tax: num(f.get('tax')), notes: (f.get('notes')||'').trim() };
+    try { await S.db.addReceipt(rec, file); toast(file ? 'Receipt saved with photo' : 'Receipt saved'); render(); }
+    catch(err){ btn.disabled = false; btn.textContent = 'Save receipt'; alert('Could not save receipt: ' + (err.message||err)); }
+  };
   const cf = $('#checkForm');
   if(cf) cf.onsubmit = async e => { e.preventDefault(); const f = new FormData(cf); const existing = await S.db.listChecklist(r.id); await S.db.addChecklist([{ event_id: r.id, label: f.get('label').trim(), done:false, sort: existing.length }]); render(); };
 
@@ -713,14 +820,18 @@ function makeICS(e){
 async function exportCSV(){
   const expenses = await S.db.listExpenses();
   const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
-  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Profit','Source','Notes'].join(',')];
-  const by = {}; expenses.forEach(x => { by[x.event_id] = (by[x.event_id]||0) + num(x.cost); });
-  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), (by[e.id]||0).toFixed(2), (num(e.price_agreed)-(by[e.id]||0)).toFixed(2), e.source, e.notes].map(q).join(',')));
-  const ex = [['Date bought','Event date','Client','Item','Store','Cost'].join(',')];
-  expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.store, num(x.cost).toFixed(2)].map(q).join(',')); });
+  const receipts = S._allReceipts || [];
+  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Shipping/tax','True cost','Profit','Source','Notes'].join(',')];
+  const cb = S._costByEvent || {};
+  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => { const c = cb[e.id] || { supplies:0, shipTax:0, trueCost:0 }; ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), c.supplies.toFixed(2), c.shipTax.toFixed(2), c.trueCost.toFixed(2), (num(e.price_agreed)-c.trueCost).toFixed(2), e.source, e.notes].map(q).join(',')); });
+  const ex = [['Date bought','Event date','Client','Item','Store','Cost','Receipt'].join(',')];
+  expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; const r = receipts.find(v => v.id === x.receipt_id); ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.store, num(x.cost).toFixed(2), r ? (r.vendor||'') + ' ' + (r.receipt_date||'') : ''].map(q).join(',')); });
+  const rc = [['Receipt date','Vendor','Event date','Client','Items subtotal','Shipping','Tax','Total','Notes'].join(',')];
+  receipts.slice().sort((a,b) => (a.receipt_date||'').localeCompare(b.receipt_date||'')).forEach(r => { const e = S.events.find(v => v.id === r.event_id) || {}; rc.push([r.receipt_date, r.vendor, e.event_date, e.client_name, num(r.subtotal).toFixed(2), num(r.shipping).toFixed(2), num(r.tax).toFixed(2), (num(r.subtotal)+num(r.shipping)+num(r.tax)).toFixed(2), r.notes].map(q).join(',')); });
   download('salt-scissors-events.csv', ev.join('\n'), 'text/csv');
-  setTimeout(() => download('salt-scissors-supplies.csv', ex.join('\n'), 'text/csv'), 400);
-  toast('Two CSVs downloaded');
+  setTimeout(() => download('salt-scissors-items.csv', ex.join('\n'), 'text/csv'), 400);
+  setTimeout(() => download('salt-scissors-receipts.csv', rc.join('\n'), 'text/csv'), 800);
+  toast('Three CSVs downloaded');
 }
 
 /* ---------- go ---------- */

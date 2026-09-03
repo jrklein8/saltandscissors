@@ -32,11 +32,27 @@ create table if not exists events (
   updated_at    timestamptz not null default now()
 );
 
--- supplies bought for a specific event
+-- receipts / orders: actual spend for an event (photo lives in Storage bucket "receipts")
+create table if not exists receipts (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  event_id      uuid not null references events(id) on delete cascade,
+  vendor        text,
+  receipt_date  date,
+  subtotal      numeric not null default 0,     -- items subtotal on the receipt
+  shipping      numeric not null default 0,
+  tax           numeric not null default 0,
+  image_path    text,                           -- "<user_id>/<receipt_id>.jpg" in Storage
+  notes         text,
+  created_at    timestamptz not null default now()
+);
+
+-- individual items bought for a specific event (optionally linked to a receipt)
 create table if not exists expenses (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
   event_id    uuid not null references events(id) on delete cascade,
+  receipt_id  uuid references receipts(id) on delete set null,
   item        text not null,
   cost        numeric not null default 0,
   store       text,
@@ -70,6 +86,14 @@ create policy "own events"    on events    for all using (auth.uid() = user_id) 
 create policy "own expenses"  on expenses  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own checklist" on checklist for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own settings"  on settings  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+alter table receipts enable row level security;
+create policy "own receipts"  on receipts  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Storage: private bucket for receipt photos; each user can only touch their own folder
+insert into storage.buckets (id, name, public) values ('receipts', 'receipts', false) on conflict (id) do nothing;
+create policy "own receipt files" on storage.objects for all
+  using (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'receipts' and (storage.foldername(name))[1] = auth.uid()::text);
 
 create index if not exists events_user_date on events (user_id, event_date);
 create index if not exists expenses_event  on expenses (event_id);
