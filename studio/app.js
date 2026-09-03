@@ -11,7 +11,7 @@ const SUPABASE_KEY = 'sb_publishable_vZC-aXl96Dq5lWQEGO-lkQ_udh8Yi2j';
 /* ---------- business defaults (editable in Settings) ---------- */
 const DEFAULT_SETTINGS = {
   ownerName: 'Rebecca',
-  extraGuestRate: 15,
+  extraGuestRate: 10,
   experiences: [
     { name: 'Coastal Creamery',           price: 350, included: 15 },
     { name: 'Charm Bar',                  price: 325, included: 15 },
@@ -92,7 +92,7 @@ function seedDemo(){
       { id:e1, status:'booked', client_name:'Lauren M.', client_contact:'@laurenmakes', source:'Instagram', occasion:'Birthday', honoree:'Harper, turning 7', experience:'Coastal Creamery', guest_count:18, event_date: iso(d.getDate()+5), event_time:'14:00', location:'Backyard, Ogden', theme:'Mermaid / under the sea', notes:'Nut-free please. Mom will text gate code.', price_quoted:395, price_agreed:395, deposit:100, deposit_paid:true, paid_in_full:false, created_at:now, updated_at:now },
       { id:e2, status:'inquiry', client_name:'Danielle P.', client_contact:'danielle.p@email.com', source:'Website form', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:8, event_date: iso(d.getDate()+19), event_time:'19:00', location:'Wrightsville Beach', theme:'Galentine-ish, gold & pink', notes:'Asked if wine is okay — yes, adults only.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e3, status:'quoted', client_name:'Ms. Alvarez (PTA)', client_contact:'(910) 555-0142', source:'Referral', occasion:'School / Community', honoree:'', experience:'Sensory Scenes', guest_count:40, event_date: iso(d.getDate()+33), event_time:'10:00', location:'Ogden Elementary gym', theme:'Ocean explorers', notes:'Needs W-9 for the school. Two hosts recommended.', price_quoted:725, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
-      { id:e4, status:'booked', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', guest_count:0, event_date: iso(d.getDate()+12), event_time:'11:00', location:'Cargo District, Wilmington', theme:'Sensory sundae pop-up', notes:'Booth fee $40. Bring the banner + tent weights.', price_quoted:0, price_agreed:0, deposit:0, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
+      { id:e4, status:'booked', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', experience_detail:'Sensory sundae booth', guest_count:'', event_date: iso(d.getDate()+12), event_time:'11:00', event_end:'15:00', location:'Cargo District, Wilmington', theme:'Sensory sundae pop-up', notes:'Booth fee $40. Bring the banner + tent weights.', price_quoted:0, price_agreed:0, deposit:0, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e5, status:'done', client_name:'Taryn C.', client_contact:'@taryn.c', source:'Instagram', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:10, event_date: iso(d.getDate()-9), event_time:'18:30', location:'Client home, Landfall', theme:'Galentines', notes:'Loved the matching mom/daughter sets.', price_quoted:325, price_agreed:325, deposit:100, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
     ],
@@ -387,8 +387,8 @@ async function viewEvent(id){
     <div class="between tiny muted"><span>${e.status==='lost'?'<span class="pill lost">marked lost</span>':'Tap a stage to move it along'}</span>${e.status!=='lost'?'<button class="iconbtn tiny" data-action="status" data-status="lost" style="font-size:.74rem;font-weight:700">mark lost</button>':'<button class="iconbtn tiny" data-action="status" data-status="inquiry" style="font-size:.74rem;font-weight:700">reopen</button>'}</div>
 
     <div class="card mt">
-      <div class="between"><h3>${esc(e.experience||'Experience TBD')}</h3>${e.guest_count?`<span class="pill quoted">${e.guest_count} guests</span>`:''}</div>
-      <div class="small"><b>${fmtDateLong(e.event_date)}</b>${e.event_time?' at '+fmtTime(e.event_time):''} <span class="countdown">${countdown(e.event_date)}</span></div>
+      <div class="between"><h3>${esc(e.experience||'Experience TBD')}${e.experience_detail?` <span class="muted" style="font-weight:500">· ${esc(e.experience_detail)}</span>`:''}</h3>${e.guest_count?`<span class="pill quoted">${esc(e.guest_count)} guests</span>`:''}</div>
+      <div class="small"><b>${fmtDateLong(e.event_date)}</b>${e.event_time?' · '+fmtTime(e.event_time)+(e.event_end?' – '+fmtTime(e.event_end):''):''} <span class="countdown">${countdown(e.event_date)}</span></div>
       ${e.location?`<div class="small muted">${esc(e.location)}</div>`:''}
       ${e.theme?`<div class="small" style="margin-top:.4rem"><span class="hand" style="font-size:1.1rem">theme:</span> ${esc(e.theme)}</div>`:''}
       <div class="row wrap" style="margin-top:.7rem">
@@ -446,7 +446,7 @@ function viewForm(e, q){
         <label>Client name *</label><input name="client_name" required value="${esc(e.client_name||'')}" placeholder="Lauren M."/>
         <div class="grid2 stack-sm">
           <div><label>Contact</label><input name="client_contact" value="${esc(e.client_contact||'')}" placeholder="@handle, phone, or email"/></div>
-          <div><label>Came from</label><select name="source">${opt(SOURCES, e.source)}</select></div>
+          <div><label>Came from</label><input name="source" list="srcList" value="${esc(e.source||'')}" placeholder="Instagram, Referral / who…"/><datalist id="srcList">${SOURCES.map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
         </div>
         <div class="grid2 stack-sm">
           <div><label>Occasion</label><select name="occasion">${opt(OCCASIONS, e.occasion||'Birthday')}</select></div>
@@ -456,11 +456,13 @@ function viewForm(e, q){
       <div class="card">
         <div class="grid2">
           <div><label>Experience</label><select name="experience" id="fExp">${opt(expNames, e.experience||expNames[0])}</select></div>
-          <div><label>Guests</label><input name="guest_count" id="fGuests" type="number" min="0" value="${esc(e.guest_count??'')}" placeholder="15"/></div>
+          <div><label>Guests</label><input name="guest_count" id="fGuests" type="text" inputmode="numeric" value="${esc(e.guest_count??'')}" placeholder="15 or 15–20"/></div>
         </div>
+        <label>Experience details</label><input name="experience_detail" value="${esc(e.experience_detail||'')}" placeholder="Playdough, cloud slime, keychain add-on…"/>
+        <label>Date</label><input name="event_date" type="date" value="${esc(e.event_date||'')}"/>
         <div class="grid2">
-          <div><label>Date</label><input name="event_date" type="date" value="${esc(e.event_date||'')}"/></div>
-          <div><label>Time</label><input name="event_time" type="time" value="${esc(e.event_time||'')}"/></div>
+          <div><label>Start time</label><input name="event_time" type="time" value="${esc(e.event_time||'')}"/></div>
+          <div><label>End time</label><input name="event_end" type="time" value="${esc(e.event_end||'')}"/></div>
         </div>
         <label>Location</label><input name="location" value="${esc(e.location||'')}" placeholder="Backyard, park shelter, studio…"/>
         <label>Theme / vibe</label><input name="theme" value="${esc(e.theme||'')}" placeholder="Mermaid, galentines, dino dig…"/>
@@ -472,7 +474,10 @@ function viewForm(e, q){
           <div><label>Quoted</label><input name="price_quoted" id="fQuoted" type="number" step="1" min="0" value="${esc(e.price_quoted??'')}"/></div>
           <div><label>Agreed</label><input name="price_agreed" id="fAgreed" type="number" step="1" min="0" value="${esc(e.price_agreed??'')}"/></div>
         </div>
-        <label>Deposit amount</label><input name="deposit" type="number" step="1" min="0" value="${esc(e.deposit??'')}" placeholder="100"/>
+        <div class="grid2">
+          <div><label>Deposit amount</label><input name="deposit" type="number" step="1" min="0" value="${esc(e.deposit??'')}" placeholder="100"/></div>
+          <div><label>Deposit received?</label><label class="check" style="border:none;padding:.7rem 0 0"><input type="checkbox" name="deposit_paid" ${e.deposit_paid?'checked':''}/><span>Yes, it's in</span></label></div>
+        </div>
       </div>
       <div class="card"><label>Notes</label><textarea name="notes" placeholder="Allergies, gate codes, special requests…">${esc(e.notes||'')}</textarea></div>
       <button class="btn primary block" type="submit">${isNew?'Save request':'Save changes'}</button>
@@ -482,9 +487,12 @@ function viewForm(e, q){
 function quoteFor(expName, guests){
   const s = S.settings; const x = s.experiences.find(e => e.name === expName);
   if(!x || !x.price) return { html: `<span class="hand">custom quote</span><div class="small muted">Price this one by hand — every custom party is different.</div>`, total: null };
-  const extra = Math.max(0, num(guests) - x.included);
+  // guests may be "15" or a range like "15–20": price for the top of the range
+  const nums = (String(guests||'').match(/\d+/g) || []).map(Number);
+  const g = nums.length ? Math.max(...nums) : 0;
+  const extra = Math.max(0, g - x.included);
   const total = x.price + extra * num(s.extraGuestRate);
-  return { total, html: `<span class="eyebrow">Suggested price</span><div class="big">${money(total)}</div>
+  return { total, html: `<span class="eyebrow">Suggested price${nums.length>1?` · for ${g} guests`:''}</span><div class="big">${money(total)}</div>
     <div class="tiny muted">${money(x.price)} includes ${x.included} guests${extra?` + ${extra} extra × ${money(s.extraGuestRate)}`:''}</div>
     <div class="row mt" style="margin-top:.5rem"><button type="button" class="btn sand sm" data-action="use-quote" data-field="price_quoted">Use as quoted</button><button type="button" class="btn soft sm" data-action="use-quote" data-field="price_agreed">Use as agreed</button></div>` };
 }
@@ -630,9 +638,9 @@ function bind(r){
     $('#fExp').onchange = upd; $('#fGuests').oninput = upd; upd();
     ef.onsubmit = async e => {
       e.preventDefault(); const f = new FormData(ef); const o = Object.fromEntries(f.entries());
-      const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:o.source, occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, guest_count:o.guest_count===''?null:parseInt(o.guest_count,10), event_date:o.event_date||null, event_time:o.event_time||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit) };
+      const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:(o.source||'').trim(), occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, experience_detail:(o.experience_detail||'').trim(), guest_count:(o.guest_count||'').trim()||null, event_date:o.event_date||null, event_time:o.event_time||null, event_end:o.event_end||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit), deposit_paid: !!o.deposit_paid };
       const prev = o.id ? S.events.find(x => x.id === o.id) : null;
-      if(prev){ ev.deposit_paid = prev.deposit_paid; ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.deposit_paid = false; ev.paid_in_full = false; }
+      if(prev){ ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.paid_in_full = false; }
       try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); }
     };
   }
@@ -661,7 +669,12 @@ function makeICS(e){
   const dt = e.event_date.replace(/-/g,'');
   const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
   let start, end;
-  if(e.event_time){ const t = e.event_time.replace(':',''); start = `DTSTART;TZID=America/New_York:${dt}T${t}00`; const [h,m] = e.event_time.split(':').map(Number); const eh = String(Math.min(23,h+2)).padStart(2,'0'); end = `DTEND;TZID=America/New_York:${dt}T${eh}${String(m).padStart(2,'0')}00`; }
+  if(e.event_time){
+    const t = e.event_time.replace(':',''); start = `DTSTART;TZID=America/New_York:${dt}T${t}00`;
+    let endT = e.event_end;
+    if(!endT){ const [h,m] = e.event_time.split(':').map(Number); endT = String(Math.min(23,h+2)).padStart(2,'0') + ':' + String(m).padStart(2,'0'); }
+    end = `DTEND;TZID=America/New_York:${dt}T${endT.replace(':','')}00`;
+  }
   else { start = `DTSTART;VALUE=DATE:${dt}`; end = `DTEND;VALUE=DATE:${dt}`; }
   const escI = s => String(s||'').replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n');
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Salt & Scissors Studio//EN','BEGIN:VEVENT',`UID:${e.id}@saltandscissors.co`,`DTSTAMP:${stamp}`,start,end,`SUMMARY:${escI('Salt & Scissors: ' + e.client_name + (e.experience?' — '+e.experience:''))}`,`LOCATION:${escI(e.location)}`,`DESCRIPTION:${escI([e.occasion, e.honoree, e.guest_count?e.guest_count+' guests':'', e.theme?'Theme: '+e.theme:'', e.notes].filter(Boolean).join('\n'))}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
@@ -670,9 +683,9 @@ function makeICS(e){
 async function exportCSV(){
   const expenses = await S.db.listExpenses();
   const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
-  const ev = [['Date','Client','Status','Occasion','Experience','Guests','Location','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Profit','Source','Notes'].join(',')];
+  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Profit','Source','Notes'].join(',')];
   const by = {}; expenses.forEach(x => { by[x.event_id] = (by[x.event_id]||0) + num(x.cost); });
-  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => ev.push([e.event_date, e.client_name, e.status, e.occasion, e.experience, e.guest_count, e.location, e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), (by[e.id]||0).toFixed(2), (num(e.price_agreed)-(by[e.id]||0)).toFixed(2), e.source, e.notes].map(q).join(',')));
+  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), (by[e.id]||0).toFixed(2), (num(e.price_agreed)-(by[e.id]||0)).toFixed(2), e.source, e.notes].map(q).join(',')));
   const ex = [['Date bought','Event date','Client','Item','Store','Cost'].join(',')];
   expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.store, num(x.cost).toFixed(2)].map(q).join(',')); });
   download('salt-scissors-events.csv', ev.join('\n'), 'text/csv');

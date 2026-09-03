@@ -13,10 +13,12 @@ create table if not exists events (
   source        text,                               -- Website form, Instagram, Referral…
   occasion      text,                               -- Birthday, Girls' Night, Shower…
   experience    text,                               -- Coastal Creamery, Charm Bar…
+  experience_detail text,                           -- "Playdough", "Cloud slime", add-ons
   honoree       text,                               -- guest of honor ("Harper, turning 7")
-  guest_count   int,
+  guest_count   text,                               -- "15" or a range like "15–20"
   event_date    date,
-  event_time    text,                               -- "14:00"
+  event_time    text,                               -- start, "14:00"
+  event_end     text,                               -- end, "16:00"
   location      text,
   theme         text,
   notes         text,
