@@ -450,7 +450,7 @@ async function viewEvent(id){
   const spend = costs.trueCost;
   const agreed = num(e.price_agreed), bal = balanceOf(e), profit = agreed - spend;
   const rlabel = r => `${r.vendor || 'Receipt'} · ${fmtDate(r.receipt_date)}`;
-  const itemEditForm = x => `<form class="iedit" data-id="${x.id}"><input name="item" value="${esc(x.item)}" placeholder="Item" required/><input name="qty" type="number" step="any" min="0" placeholder="qty" value="${x.qty??''}"/><input name="cost" type="number" step="0.01" min="0" value="${num(x.cost)}" required/><div class="btns"><button class="btn sand sm" type="submit">Save</button><button type="button" class="btn soft sm" data-action="cancel-edit">Cancel</button></div></form>`;
+  const itemEditForm = x => `<form class="iedit" data-id="${x.id}"><input name="item" value="${esc(x.item)}" placeholder="Item" required/><input name="qty" type="number" step="any" min="0" placeholder="qty" value="${x.qty??''}"/><input name="cost" type="number" step="0.01" min="0" value="${num(x.cost)}" required/><input name="store" class="wide" list="vendorList" value="${esc(x.store||'')}" placeholder="Where (Amazon, Target…)"/><div class="btns"><button class="btn sand sm" type="submit">Save</button><button type="button" class="btn soft sm" data-action="cancel-edit">Cancel</button></div></form>`;
   const doneCount = checklist.filter(c => c.done).length;
   const contact = esc(e.client_contact || '');
   const contactLink = !e.client_contact ? '' : /^@/.test(e.client_contact) ? `<a href="https://instagram.com/${esc(e.client_contact.slice(1))}" target="_blank" rel="noopener">${contact}</a>` : /@.+\./.test(e.client_contact) ? `<a href="mailto:${contact}">${contact}</a>` : /\d{3}/.test(e.client_contact) ? `<a href="tel:${esc(e.client_contact.replace(/[^\d+]/g,''))}">${contact}</a>` : contact;
@@ -857,7 +857,7 @@ function bind(r){
   // inline edits — items and receipts
   $$('.iedit').forEach(fe => fe.onsubmit = async e => {
     e.preventDefault(); const f = new FormData(fe);
-    await S.db.updateExpense(fe.dataset.id, { item: (f.get('item')||'').trim(), qty: f.get('qty') === '' ? null : num(f.get('qty')), cost: num(f.get('cost')) });
+    await S.db.updateExpense(fe.dataset.id, { item: (f.get('item')||'').trim(), qty: f.get('qty') === '' ? null : num(f.get('qty')), cost: num(f.get('cost')), store: (f.get('store')||'').trim() });
     S._editItem = null; toast('Item updated'); render();
   });
   const re = $('#receiptEdit');
