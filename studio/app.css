@@ -115,9 +115,9 @@ textarea{min-height:84px;resize:vertical}
 .switch input[type=checkbox]:checked{background:#7fa68f}
 .switch input[type=checkbox]:checked::after{transform:translateX(18px)}
 
-/* quote helper */
-.quote{background:linear-gradient(135deg,#fff8ee,#fbefe2);border:1px dashed var(--sand);border-radius:14px;padding:.85rem 1rem;margin-top:.9rem}
-.quote .big{font-family:var(--disp);font-size:1.6rem;color:var(--slate)}
+/* price builder */
+.line-row{display:grid;grid-template-columns:1fr 96px auto;gap:.4rem;align-items:center;margin-top:.45rem}
+.line-row input{padding:.55rem .7rem}
 
 /* ---------- lists ---------- */
 .list{list-style:none;margin:0;padding:0}

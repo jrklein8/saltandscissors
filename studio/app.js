@@ -69,9 +69,9 @@ function attachDraft(form, key){
   try {
     const d = JSON.parse(localStorage.getItem(key));
     if(d && d._t && Date.now() - d._t > MAX_AGE){ localStorage.removeItem(key); }
-    else if(d){ Object.entries(d).forEach(([k,v]) => { const el = form.elements[k]; if(el && el.type !== 'hidden' && el.type !== 'submit') el.value = v; }); restored = true; }
+    else if(d){ Object.entries(d).forEach(([k,v]) => { const el = form.elements[k]; if(el && k !== 'id' && el.type !== 'submit'){ if(el.type === 'checkbox') el.checked = !!v; else el.value = v; } }); restored = true; }
   } catch(e){}
-  const save = () => { const o = { _t: Date.now() }; new FormData(form).forEach((v,k) => { if(k !== 'id') o[k] = v; }); localStorage.setItem(key, JSON.stringify(o)); };
+  const save = () => { const o = { _t: Date.now() }; new FormData(form).forEach((v,k) => { if(k !== 'id') o[k] = v; }); [...form.elements].forEach(el => { if(el.type === 'checkbox' && el.name) o[el.name] = el.checked; }); localStorage.setItem(key, JSON.stringify(o)); };
   form.addEventListener('input', save); form.addEventListener('change', save);
   return restored;
 }
@@ -89,9 +89,9 @@ function seedDemo(){
   return {
     settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
     events: [
-      { id:e1, status:'booked', client_name:'Lauren M.', client_contact:'@laurenmakes', source:'Instagram', occasion:'Birthday', honoree:'Harper, turning 7', experience:'Coastal Creamery', guest_count:18, event_date: iso(d.getDate()+5), event_time:'14:00', location:'Backyard, Ogden', theme:'Mermaid / under the sea', notes:'Nut-free please. Mom will text gate code.', price_quoted:395, price_agreed:395, deposit:100, deposit_paid:true, paid_in_full:false, created_at:now, updated_at:now },
+      { id:e1, status:'booked', client_name:'Lauren M.', client_contact:'@laurenmakes', source:'Instagram', occasion:'Birthday', honoree:'Harper, turning 7', experience:'Coastal Creamery', guest_count:18, event_date: iso(d.getDate()+5), event_time:'14:00', location:'Backyard, Ogden', theme:'Mermaid / under the sea', notes:'Nut-free please. Mom will text gate code.', price_lines:[{label:'Coastal Creamery (includes 15)',amount:350},{label:'3 extra guests × $15',amount:45}], price_quoted:395, price_agreed:395, deposit:100, deposit_paid:true, paid_in_full:false, created_at:now, updated_at:now },
       { id:e2, status:'inquiry', client_name:'Danielle P.', client_contact:'danielle.p@email.com', source:'Website form', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:8, event_date: iso(d.getDate()+19), event_time:'19:00', location:'Wrightsville Beach', theme:'Galentine-ish, gold & pink', notes:'Asked if wine is okay — yes, adults only.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
-      { id:e3, status:'quoted', client_name:'Ms. Alvarez (PTA)', client_contact:'(910) 555-0142', source:'Referral', occasion:'School / Community', honoree:'', experience:'Sensory Scenes', guest_count:40, event_date: iso(d.getDate()+33), event_time:'10:00', location:'Ogden Elementary gym', theme:'Ocean explorers', notes:'Needs W-9 for the school. Two hosts recommended.', price_quoted:725, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
+      { id:e3, status:'quoted', client_name:'Ms. Alvarez (PTA)', client_contact:'(910) 555-0142', source:'Referral', occasion:'School / Community', honoree:'', experience:'Sensory Scenes', guest_count:40, event_date: iso(d.getDate()+33), event_time:'10:00', location:'Ogden Elementary gym', theme:'Ocean explorers', notes:'Needs W-9 for the school. Two hosts recommended.', price_lines:[{label:'Sensory Scenes (includes 10)',amount:275},{label:'30 extra guests × $15',amount:450}], price_quoted:725, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e4, status:'booked', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', experience_detail:'Sensory sundae booth', guest_count:'', event_date: iso(d.getDate()+12), event_time:'11:00', event_end:'15:00', location:'Cargo District, Wilmington', theme:'Sensory sundae pop-up', notes:'Booth fee $40. Bring the banner + tent weights.', price_quoted:0, price_agreed:0, deposit:0, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e5, status:'done', client_name:'Taryn C.', client_contact:'@taryn.c', source:'Instagram', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:10, event_date: iso(d.getDate()-9), event_time:'18:30', location:'Client home, Landfall', theme:'Galentines', notes:'Loved the matching mom/daughter sets.', price_quoted:325, price_agreed:325, deposit:100, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
@@ -400,6 +400,7 @@ async function viewEvent(id){
 
     <div class="card">
       <div class="between"><h3>Money</h3>${e.paid_in_full?'<span class="pill paid">paid in full</span>':bal>0?`<span class="pill due">${money(bal)} due</span>`:''}</div>
+      ${(e.price_lines&&e.price_lines.length)?`<ul class="list" style="margin:.3rem 0 .5rem">${e.price_lines.map(l=>`<li><span class="grow small">${esc(l.label)}</span><b>${money(l.amount)}</b></li>`).join('')}</ul>`:''}
       <div class="grid2" style="margin:.4rem 0 .6rem">
         <div><div class="tiny muted">Quoted</div><div class="money">${e.price_quoted!=null&&e.price_quoted!==''?money(e.price_quoted):'—'}</div></div>
         <div><div class="tiny muted">Agreed</div><div class="money">${agreed?money(agreed):'—'}</div></div>
@@ -423,7 +424,8 @@ async function viewEvent(id){
         ${checklist.map(c=>`<label class="check ${c.done?'done':''}"><input type="checkbox" data-action="check" data-id="${c.id}" ${c.done?'checked':''}/><span class="grow">${esc(c.label)}</span><button class="iconbtn" data-action="del-check" data-id="${c.id}" aria-label="Remove">×</button></label>`).join('')}`
         : `<p class="small muted">Load the ${esc(e.experience||'')} packing list and check things off as you load the car.</p><button class="btn soft sm" data-action="load-packing">Load packing list</button>`}
       <form class="row mt" id="checkForm"><input name="label" placeholder="Add an item…" required/><button class="btn sand sm" type="submit">Add</button></form>
-      ${checklist.length?`<button class="btn ghost sm mt" data-action="load-packing">Add ${esc(e.experience||'default')} list again</button>`:''}
+      <div class="row mt"><select id="packPick" style="flex:1">${S.settings.experiences.map(x=>`<option ${x.name===e.experience?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="btn soft sm" data-action="load-packing-for">Add list</button></div>
+      <p class="tiny muted" style="margin:.3rem 0 0">Doing more than one experience? Add each one's list.</p>
     </div>
 
     ${e.notes?`<div class="note">${esc(e.notes)}</div>`:''}
@@ -468,11 +470,19 @@ function viewForm(e, q){
         <label>Theme / vibe</label><input name="theme" value="${esc(e.theme||'')}" placeholder="Mermaid, galentines, dino dig…"/>
       </div>
       <div class="card">
-        <div class="between"><h3>Money</h3><label style="margin:0">Status <select name="status" style="display:inline-block;width:auto;padding:.3rem .6rem;margin-left:.3rem">${STATUSES.map(x=>`<option value="${x.key}" ${e.status===x.key?'selected':''}>${x.label}</option>`).join('')}<option value="lost" ${e.status==='lost'?'selected':''}>Lost</option></select></label></div>
-        <div class="quote" id="quoteBox"></div>
+        <div class="between"><h3>Pricing</h3><label style="margin:0">Status <select name="status" style="display:inline-block;width:auto;padding:.3rem .6rem;margin-left:.3rem">${STATUSES.map(x=>`<option value="${x.key}" ${e.status===x.key?'selected':''}>${x.label}</option>`).join('')}<option value="lost" ${e.status==='lost'?'selected':''}>Lost</option></select></label></div>
+        <p class="tiny muted" style="margin:.2rem 0 .4rem">Build this event's package — tap a preset, then change anything. Every event can be priced its own way.</p>
+        <div class="chips" id="presetChips" style="margin:.3rem 0 .4rem">
+          ${s.experiences.map(x=>`<button type="button" class="chip" data-action="add-line" data-label="${esc(x.name)}${x.included?` (includes ${x.included})`:''}" data-amount="${x.price||''}">${esc(x.name)}${x.price?' · '+money(x.price):''}</button>`).join('')}
+          <button type="button" class="chip" data-action="add-extra-guests">+ Extra guests</button>
+          <button type="button" class="chip" data-action="add-line" data-label="" data-amount="">+ Custom line</button>
+        </div>
+        <div id="lines"></div>
+        <div class="between" style="margin:.6rem 0 .2rem"><b>Package total</b><span class="money" id="linesTotal">$0</span></div>
+        <input type="hidden" name="price_lines" id="fLines" value="${esc(JSON.stringify(e.price_lines||[]))}"/>
         <div class="grid2">
-          <div><label>Quoted</label><input name="price_quoted" id="fQuoted" type="number" step="1" min="0" value="${esc(e.price_quoted??'')}"/></div>
-          <div><label>Agreed</label><input name="price_agreed" id="fAgreed" type="number" step="1" min="0" value="${esc(e.price_agreed??'')}"/></div>
+          <div><label>First quoted</label><input name="price_quoted" id="fQuoted" type="number" step="1" min="0" value="${esc(e.price_quoted??'')}"/></div>
+          <div><label>Agreed total</label><input name="price_agreed" id="fAgreed" type="number" step="1" min="0" value="${esc(e.price_agreed??'')}"/></div>
         </div>
         <div class="grid2">
           <div><label>Deposit amount</label><input name="deposit" type="number" step="1" min="0" value="${esc(e.deposit??'')}" placeholder="100"/></div>
@@ -482,19 +492,6 @@ function viewForm(e, q){
       <div class="card"><label>Notes</label><textarea name="notes" placeholder="Allergies, gate codes, special requests…">${esc(e.notes||'')}</textarea></div>
       <button class="btn primary block" type="submit">${isNew?'Save request':'Save changes'}</button>
     </form>`;
-}
-
-function quoteFor(expName, guests){
-  const s = S.settings; const x = s.experiences.find(e => e.name === expName);
-  if(!x || !x.price) return { html: `<span class="hand">custom quote</span><div class="small muted">Price this one by hand — every custom party is different.</div>`, total: null };
-  // guests may be "15" or a range like "15–20": price for the top of the range
-  const nums = (String(guests||'').match(/\d+/g) || []).map(Number);
-  const g = nums.length ? Math.max(...nums) : 0;
-  const extra = Math.max(0, g - x.included);
-  const total = x.price + extra * num(s.extraGuestRate);
-  return { total, html: `<span class="eyebrow">Suggested price${nums.length>1?` · for ${g} guests`:''}</span><div class="big">${money(total)}</div>
-    <div class="tiny muted">${money(x.price)} includes ${x.included} guests${extra?` + ${extra} extra × ${money(s.extraGuestRate)}`:''}</div>
-    <div class="row mt" style="margin-top:.5rem"><button type="button" class="btn sand sm" data-action="use-quote" data-field="price_quoted">Use as quoted</button><button type="button" class="btn soft sm" data-action="use-quote" data-field="price_agreed">Use as agreed</button></div>` };
 }
 
 /* ---------- CLIENTS ---------- */
@@ -571,7 +568,7 @@ function viewSettings(){
     <form id="settingsForm">
       <div class="card">
         <label>Your name</label><input name="ownerName" value="${esc(s.ownerName)}"/>
-        <label>Extra guest rate (per guest over the included count)</label><input name="extraGuestRate" type="number" min="0" step="1" value="${esc(s.extraGuestRate)}"/>
+        <label>Default extra-guest rate (a starting point — every event can be priced its own way)</label><input name="extraGuestRate" type="number" min="0" step="1" value="${esc(s.extraGuestRate)}"/>
       </div>
       <div class="card">
         <h3>Price list</h3><p class="tiny muted">Base price and how many guests it includes. Feeds the quote helper.</p>
@@ -608,11 +605,17 @@ function bind(r){
     if(a === 'status'){ ev.preventDefault(); const e = S.events.find(x => x.id === r.id); e.status = el.dataset.status; await S.db.saveEvent(e); toast('Moved to ' + e.status); return render(); }
     if(a === 'del-expense'){ ev.preventDefault(); await S.db.deleteExpense(el.dataset.id); return render(); }
     if(a === 'del-check'){ ev.preventDefault(); await S.db.deleteChecklist(el.dataset.id); return render(); }
-    if(a === 'load-packing'){ const e = S.events.find(x => x.id === r.id); const s = S.settings; const existing = await S.db.listChecklist(e.id); const have = new Set(existing.map(c => c.label.toLowerCase())); const base = existing.length; const items = [...(s.packing[e.experience]||[]), ...(s.packing._always||[])].filter(l => !have.has(l.toLowerCase())).map((label,i) => ({ event_id: e.id, label, done:false, sort: base + i })); if(!items.length) return toast('Already loaded'); await S.db.addChecklist(items); toast('Packing list loaded'); return render(); }
+    if(a === 'load-packing' || a === 'load-packing-for'){
+      const e = S.events.find(x => x.id === r.id); const s = S.settings;
+      const exp = a === 'load-packing-for' ? $('#packPick').value : e.experience;
+      const existing = await S.db.listChecklist(e.id); const have = new Set(existing.map(c => c.label.toLowerCase())); const base = existing.length;
+      const items = [...(s.packing[exp]||[]), ...(s.packing._always||[])].filter(l => !have.has(l.toLowerCase())).map((label,i) => ({ event_id: e.id, label, done:false, sort: base + i }));
+      if(!items.length) return toast('Already loaded');
+      await S.db.addChecklist(items); toast(exp + ' list added'); return render();
+    }
     if(a === 'delete'){ if(!confirm('Delete this event and its supplies/checklist?')) return; await S.db.deleteEvent(r.id); toast('Deleted'); return go('#/events'); }
     if(a === 'ics'){ const e = S.events.find(x => x.id === r.id); return download(`salt-scissors-${(e.client_name||'event').replace(/\W+/g,'-').toLowerCase()}.ics`, makeICS(e), 'text/calendar'); }
     if(a === 'export'){ return exportCSV(); }
-    if(a === 'use-quote'){ const f = el.dataset.field; const box = $('#quoteBox'); const t = box.dataset.total; if(t) $('#f' + (f==='price_quoted'?'Quoted':'Agreed')).value = t; return; }
     if(a === 'reset-demo'){ if(!confirm('Replace everything with the sample data?')) return; await S.db.resetDemo(); toast('Sample data loaded'); return render(); }
     if(a === 'clear-all'){ if(!confirm('Delete ALL events and start empty?')) return; await S.db.clearAll(); toast('Fresh start'); return render(); }
     if(a === 'signout'){ await S.sb.auth.signOut(); return; }
@@ -629,16 +632,43 @@ function bind(r){
   // event form
   const ef = $('#eventForm');
   if(ef){
-    const upd = () => { const qb = $('#quoteBox'); const { html, total } = quoteFor($('#fExp').value, $('#fGuests').value); qb.innerHTML = html; qb.dataset.total = total ?? ''; };
     const dkey = draftKey(ef.elements.id.value || 'new');
     if(attachDraft(ef, dkey)){
       toast('Restored what you were typing');
       $('main h1').insertAdjacentHTML('afterend', `<button type="button" class="btn soft sm" data-action="discard-draft" data-key="${dkey}" style="margin-bottom:.6rem">Discard unsaved changes</button>`);
     }
-    $('#fExp').onchange = upd; $('#fGuests').oninput = upd; upd();
+    // ---- per-event price builder (line items) ----
+    const linesEl = $('#lines'), fLines = $('#fLines'), totalEl = $('#linesTotal');
+    let lines = []; try { lines = JSON.parse(fLines.value || '[]') || []; } catch(e){ lines = []; }
+    const sync = () => {
+      const total = lines.reduce((t,l) => t + num(l.amount), 0);
+      totalEl.textContent = money(total); fLines.value = JSON.stringify(lines);
+      if(lines.length) $('#fAgreed').value = total;
+      fLines.dispatchEvent(new Event('input', {bubbles:true})); // feeds the draft autosave
+    };
+    const renderLines = (focusLast) => {
+      linesEl.innerHTML = lines.map((l,i) => `<div class="line-row" data-i="${i}"><input class="l-label" placeholder="What (e.g. Canvas add-on)" value="${esc(l.label||'')}"/><input class="l-amt" type="number" step="1" inputmode="decimal" placeholder="$" value="${l.amount===''||l.amount==null?'':l.amount}"/><button type="button" class="iconbtn l-del" aria-label="Remove line">×</button></div>`).join('');
+      sync();
+      if(focusLast && lines.length){ const rows = linesEl.querySelectorAll('.line-row'); const last = rows[rows.length-1]; (last.querySelector('.l-label').value ? last.querySelector('.l-amt') : last.querySelector('.l-label')).focus(); }
+    };
+    linesEl.addEventListener('input', ev => { const row = ev.target.closest('.line-row'); if(!row) return; const i = +row.dataset.i; if(ev.target.classList.contains('l-label')) lines[i].label = ev.target.value; else lines[i].amount = ev.target.value === '' ? '' : num(ev.target.value); sync(); });
+    linesEl.addEventListener('click', ev => { const b = ev.target.closest('.l-del'); if(!b) return; lines.splice(+b.closest('.line-row').dataset.i, 1); renderLines(); });
+    $('#presetChips').addEventListener('click', ev => {
+      const b = ev.target.closest('[data-action]'); if(!b) return;
+      if(b.dataset.action === 'add-line'){ lines.push({ label: b.dataset.label, amount: b.dataset.amount === '' ? '' : num(b.dataset.amount) }); renderLines(true); }
+      if(b.dataset.action === 'add-extra-guests'){
+        const x = S.settings.experiences.find(z => z.name === $('#fExp').value);
+        const nums = (String($('#fGuests').value||'').match(/\d+/g) || []).map(Number);
+        const extra = Math.max(0, (nums.length ? Math.max(...nums) : 0) - (x ? x.included : 0));
+        const rate = num(S.settings.extraGuestRate);
+        lines.push(extra ? { label: `${extra} extra guests × ${money(rate)}`, amount: extra * rate } : { label: 'Extra guests', amount: '' });
+        renderLines(true);
+      }
+    });
+    renderLines();
     ef.onsubmit = async e => {
       e.preventDefault(); const f = new FormData(ef); const o = Object.fromEntries(f.entries());
-      const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:(o.source||'').trim(), occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, experience_detail:(o.experience_detail||'').trim(), guest_count:(o.guest_count||'').trim()||null, event_date:o.event_date||null, event_time:o.event_time||null, event_end:o.event_end||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit), deposit_paid: !!o.deposit_paid };
+      const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:(o.source||'').trim(), occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, experience_detail:(o.experience_detail||'').trim(), guest_count:(o.guest_count||'').trim()||null, event_date:o.event_date||null, event_time:o.event_time||null, event_end:o.event_end||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit), deposit_paid: !!o.deposit_paid, price_lines: (()=>{ try { return (JSON.parse(o.price_lines||'[]')||[]).filter(l => (l.label||'').trim() || l.amount !== '').map(l => ({ label:(l.label||'').trim(), amount:num(l.amount) })); } catch(e){ return []; } })() };
       const prev = o.id ? S.events.find(x => x.id === o.id) : null;
       if(prev){ ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.paid_in_full = false; }
       try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); }
@@ -683,9 +713,9 @@ function makeICS(e){
 async function exportCSV(){
   const expenses = await S.db.listExpenses();
   const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
-  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Profit','Source','Notes'].join(',')];
+  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Profit','Source','Notes'].join(',')];
   const by = {}; expenses.forEach(x => { by[x.event_id] = (by[x.event_id]||0) + num(x.cost); });
-  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), (by[e.id]||0).toFixed(2), (num(e.price_agreed)-(by[e.id]||0)).toFixed(2), e.source, e.notes].map(q).join(',')));
+  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), (by[e.id]||0).toFixed(2), (num(e.price_agreed)-(by[e.id]||0)).toFixed(2), e.source, e.notes].map(q).join(',')));
   const ex = [['Date bought','Event date','Client','Item','Store','Cost'].join(',')];
   expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.store, num(x.cost).toFixed(2)].map(q).join(',')); });
   download('salt-scissors-events.csv', ev.join('\n'), 'text/csv');

@@ -22,6 +22,7 @@ create table if not exists events (
   location      text,
   theme         text,
   notes         text,
+  price_lines   jsonb not null default '[]'::jsonb, -- per-event package: [{label, amount}, …]
   price_quoted  numeric,
   price_agreed  numeric,
   deposit       numeric,
