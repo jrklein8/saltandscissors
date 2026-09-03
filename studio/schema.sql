@@ -54,7 +54,8 @@ create table if not exists expenses (
   event_id    uuid not null references events(id) on delete cascade,
   receipt_id  uuid references receipts(id) on delete set null,
   item        text not null,
-  cost        numeric not null default 0,
+  qty         numeric,                        -- how many in the pack → cost each
+  cost        numeric not null default 0,     -- line total
   store       text,
   created_at  timestamptz not null default now()
 );

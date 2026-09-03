@@ -134,7 +134,10 @@ textarea{min-height:84px;resize:vertical}
 .ritems{margin:0 0 .6rem 66px;padding-left:.6rem;border-left:2px solid var(--paper-2)}
 .ritem{display:flex;align-items:center;gap:.5rem;font-size:.86rem;padding:.2rem 0;color:var(--ink-soft)}
 .ritem .grow{color:var(--ink)}
-.radd{display:grid;grid-template-columns:1fr 84px auto;gap:.35rem;margin-top:.35rem}
+.radd{display:grid;grid-template-columns:1fr 58px 84px auto;gap:.35rem;margin-top:.35rem}
+.inline-form.qty{grid-template-columns:1fr 66px 92px auto}
+.line-row.qty{grid-template-columns:1fr 62px 90px auto}
+@media(max-width:420px){.inline-form.qty{grid-template-columns:1fr 56px 80px auto}.line-row.qty{grid-template-columns:1fr 54px 78px auto}.radd{grid-template-columns:1fr 50px 74px auto}}
 .radd input{padding:.4rem .6rem;font-size:.85rem}
 .radd .btn{padding:.38rem .7rem}
 @media(max-width:480px){.ritems{margin-left:0}}

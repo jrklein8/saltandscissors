@@ -101,6 +101,8 @@ function eventCosts(expenses, receipts){
   return { supplies, shipTax, trueCost: supplies + shipTax, byReceipt };
 }
 const VENDORS = ['Amazon','Target','Walmart','Michaels','Hobby Lobby','Dollar Tree','Costco','Etsy'];
+/* "24 × $0.48 ea" for items with a quantity */
+const unitOf = x => (x.qty && num(x.qty) > 0) ? ` · ${num(x.qty)} × ${money2(num(x.cost) / num(x.qty))} ea` : '';
 let toastT; const toast = msg => { let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); };
 
 /* ============================================================
@@ -127,8 +129,8 @@ function seedDemo(){
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
     ],
     expenses: [
-      { id:uid(), event_id:e5, item:'Gold chains (25 pk)', cost:42.50, store:'Amazon', receipt_id:r1, created_at:now },
-      { id:uid(), event_id:e5, item:'Letter charms', cost:31.20, store:'Amazon', receipt_id:r1, created_at:now },
+      { id:uid(), event_id:e5, item:'Gold chains', qty:25, cost:42.50, store:'Amazon', receipt_id:r1, created_at:now },
+      { id:uid(), event_id:e5, item:'Letter charms', qty:120, cost:31.20, store:'Amazon', receipt_id:r1, created_at:now },
       { id:uid(), event_id:e5, item:'Jewelry bags', cost:9.99, store:'Michaels', receipt_id:null, created_at:now },
       { id:uid(), event_id:e6, item:'Kinetic sand (6 lb)', cost:28.00, store:'Target', receipt_id:r2, created_at:now },
       { id:uid(), event_id:e6, item:'Dino figurines', cost:16.75, store:'Amazon', created_at:now },
@@ -492,9 +494,9 @@ async function viewEvent(id){
           <button class="iconbtn" data-action="del-receipt" data-id="${r.id}" aria-label="Remove receipt">×</button>
         </div>
         <div class="ritems">
-          ${mine.map(x=>`<div class="ritem"><span class="grow">${esc(x.item)}</span><span>${money2(x.cost)}</span><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove item">×</button></div>`).join('')}
+          ${mine.map(x=>`<div class="ritem"><span class="grow">${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></span><span>${money2(x.cost)}</span><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove item">×</button></div>`).join('')}
           ${num(r.subtotal) && mine.length && Math.abs(num(r.subtotal)-linked)>0.005 ? `<div class="tiny muted">items add to ${money2(linked)} of the ${money2(r.subtotal)} subtotal</div>` : ''}
-          <form class="radd" data-receipt="${r.id}"><input name="rname" placeholder="+ item on this receipt" required/><input name="rcost" type="number" step="0.01" min="0" placeholder="$" required/><button class="btn sand sm" type="submit">Add</button></form>
+          <form class="radd" data-receipt="${r.id}"><input name="rname" placeholder="+ item on this receipt" required/><input name="rqty" type="number" step="any" min="0" inputmode="numeric" placeholder="qty"/><input name="rcost" type="number" step="0.01" min="0" placeholder="$" required/><button class="btn sand sm" type="submit">Add</button></form>
         </div>
       </div>`; }).join('') : ''}
       <details class="addbox mt"><summary class="btn soft sm">+ Add receipt / order</summary>
@@ -520,8 +522,8 @@ async function viewEvent(id){
 
       ${(() => { const loose = expenses.filter(x => !x.receipt_id); return `
       <div class="between" style="margin-top:1.2rem"><h3 style="margin:0">Other items</h3><span class="tiny muted">no receipt — cash, odds &amp; ends</span></div>
-      ${loose.length ? `<ul class="list">${loose.map(x=>`<li><div class="grow"><div>${esc(x.item)}</div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
-      <form class="inline-form" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Ribbon from the craft bin" required/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
+      ${loose.length ? `<ul class="list">${loose.map(x=>`<li><div class="grow"><div>${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
+      <form class="inline-form qty" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Resin sea creatures" required/></div><div><label>Qty</label><input name="qty" type="number" step="any" min="0" inputmode="numeric" placeholder="#"/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
       <input name="store" id="expenseStore" placeholder="Where (optional)" style="margin-top:.5rem"/>`; })()}
     </div>
 
@@ -787,18 +789,18 @@ function bind(r){
 
   // expense form
   const xf = $('#expenseForm');
-  if(xf) xf.onsubmit = async e => { e.preventDefault(); const f = new FormData(xf); const rsel = $('#expenseReceipt'); await S.db.addExpense({ event_id: r.id, item: f.get('item').trim(), cost: num(f.get('cost')), store: ($('#expenseStore').value||'').trim(), receipt_id: (rsel && rsel.value) ? rsel.value : null }); toast('Added'); render(); };
+  if(xf) xf.onsubmit = async e => { e.preventDefault(); const f = new FormData(xf); const rsel = $('#expenseReceipt'); await S.db.addExpense({ event_id: r.id, item: f.get('item').trim(), qty: f.get('qty') === '' ? null : num(f.get('qty')), cost: num(f.get('cost')), store: ($('#expenseStore').value||'').trim(), receipt_id: (rsel && rsel.value) ? rsel.value : null }); toast('Added'); render(); };
   const rf = $('#receiptForm');
   if(rf){
     // itemized receipt: item rows sum into the subtotal
     const rl = $('#rlines'); let rlines = [];
     const rsync = () => { const t = rlines.reduce((s,l) => s + num(l.cost), 0); if(rlines.length) $('#rSubtotal').value = t ? t.toFixed(2) : ''; };
     const rrender = (focusLast) => {
-      rl.innerHTML = rlines.map((l,i) => `<div class="line-row" data-i="${i}"><input class="rl-label" placeholder="Item (e.g. Sundae cups 25 pk)" value="${esc(l.item||'')}"/><input class="rl-amt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="$" value="${l.cost===''||l.cost==null?'':l.cost}"/><button type="button" class="iconbtn rl-del" aria-label="Remove">×</button></div>`).join('');
+      rl.innerHTML = rlines.map((l,i) => `<div class="line-row qty" data-i="${i}"><input class="rl-label" placeholder="Item (e.g. Resin sea creatures)" value="${esc(l.item||'')}"/><input class="rl-qty" type="number" step="any" min="0" inputmode="numeric" placeholder="qty" value="${l.qty===''||l.qty==null?'':l.qty}"/><input class="rl-amt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="$" value="${l.cost===''||l.cost==null?'':l.cost}"/><button type="button" class="iconbtn rl-del" aria-label="Remove">×</button></div>`).join('');
       rsync();
       if(focusLast && rlines.length){ rl.querySelectorAll('.line-row')[rlines.length-1].querySelector('.rl-label').focus(); }
     };
-    rl.addEventListener('input', ev => { const row = ev.target.closest('.line-row'); if(!row) return; const i = +row.dataset.i; if(ev.target.classList.contains('rl-label')) rlines[i].item = ev.target.value; else rlines[i].cost = ev.target.value === '' ? '' : num(ev.target.value); rsync(); });
+    rl.addEventListener('input', ev => { const row = ev.target.closest('.line-row'); if(!row) return; const i = +row.dataset.i; const v = ev.target.value; if(ev.target.classList.contains('rl-label')) rlines[i].item = v; else if(ev.target.classList.contains('rl-qty')) rlines[i].qty = v === '' ? '' : num(v); else rlines[i].cost = v === '' ? '' : num(v); rsync(); });
     rl.addEventListener('click', ev => { const b = ev.target.closest('.rl-del'); if(!b) return; rlines.splice(+b.closest('.line-row').dataset.i, 1); rrender(); });
     $('#rlineAdd').addEventListener('click', () => { rlines.push({ item:'', cost:'' }); rrender(true); });
     rf.onsubmit = async e => {
@@ -808,7 +810,7 @@ function bind(r){
       const rec = { event_id: r.id, vendor: (f.get('vendor')||'').trim(), receipt_date: f.get('receipt_date') || null, subtotal: num(f.get('subtotal')), shipping: num(f.get('shipping')), tax: num(f.get('tax')), notes: (f.get('notes')||'').trim() };
       try {
         const saved = await S.db.addReceipt(rec, file);
-        for(const l of items) await S.db.addExpense({ event_id: r.id, item: l.item.trim(), cost: num(l.cost), store: rec.vendor, receipt_id: saved.id });
+        for(const l of items) await S.db.addExpense({ event_id: r.id, item: l.item.trim(), qty: (l.qty === '' || l.qty == null) ? null : num(l.qty), cost: num(l.cost), store: rec.vendor, receipt_id: saved.id });
         toast(`Receipt saved${items.length ? ' with ' + items.length + ' item' + (items.length===1?'':'s') : ''}${file ? ' + photo' : ''}`); render();
       } catch(err){ btn.disabled = false; btn.textContent = 'Save receipt'; alert('Could not save receipt: ' + (err.message||err)); }
     };
@@ -817,7 +819,7 @@ function bind(r){
   $$('.radd').forEach(fr => fr.onsubmit = async e => {
     e.preventDefault(); const f = new FormData(fr); const rid = fr.dataset.receipt;
     const rec = (S._allReceipts||[]).find(x => x.id === rid);
-    await S.db.addExpense({ event_id: r.id, item: (f.get('rname')||'').trim(), cost: num(f.get('rcost')), store: rec ? rec.vendor : '', receipt_id: rid });
+    await S.db.addExpense({ event_id: r.id, item: (f.get('rname')||'').trim(), qty: f.get('rqty') === '' ? null : num(f.get('rqty')), cost: num(f.get('rcost')), store: rec ? rec.vendor : '', receipt_id: rid });
     toast('Added to receipt'); render();
   });
   const cf = $('#checkForm');
@@ -859,8 +861,8 @@ async function exportCSV(){
   const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Shipping/tax','True cost','Profit','Source','Notes'].join(',')];
   const cb = S._costByEvent || {};
   S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => { const c = cb[e.id] || { supplies:0, shipTax:0, trueCost:0 }; ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), c.supplies.toFixed(2), c.shipTax.toFixed(2), c.trueCost.toFixed(2), (num(e.price_agreed)-c.trueCost).toFixed(2), e.source, e.notes].map(q).join(',')); });
-  const ex = [['Date bought','Event date','Client','Item','Store','Cost','Receipt'].join(',')];
-  expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; const r = receipts.find(v => v.id === x.receipt_id); ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.store, num(x.cost).toFixed(2), r ? (r.vendor||'') + ' ' + (r.receipt_date||'') : ''].map(q).join(',')); });
+  const ex = [['Date bought','Event date','Client','Item','Qty','Cost','Each','Store','Receipt'].join(',')];
+  expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; const r = receipts.find(v => v.id === x.receipt_id); const each = (x.qty && num(x.qty) > 0) ? (num(x.cost)/num(x.qty)).toFixed(4) : ''; ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.qty ?? '', num(x.cost).toFixed(2), each, x.store, r ? (r.vendor||'') + ' ' + (r.receipt_date||'') : ''].map(q).join(',')); });
   const rc = [['Receipt date','Vendor','Event date','Client','Items subtotal','Shipping','Tax','Total','Notes'].join(',')];
   receipts.slice().sort((a,b) => (a.receipt_date||'').localeCompare(b.receipt_date||'')).forEach(r => { const e = S.events.find(v => v.id === r.event_id) || {}; rc.push([r.receipt_date, r.vendor, e.event_date, e.client_name, num(r.subtotal).toFixed(2), num(r.shipping).toFixed(2), num(r.tax).toFixed(2), (num(r.subtotal)+num(r.shipping)+num(r.tax)).toFixed(2), r.notes].map(q).join(',')); });
   download('salt-scissors-events.csv', ev.join('\n'), 'text/csv');
