@@ -65,11 +65,13 @@ const download = (name, text, type='text/plain') => { const a = document.createE
 const draftKey = id => 'sss_draft_' + (id || 'new');
 function attachDraft(form, key){
   let restored = false;
+  const MAX_AGE = 12 * 60 * 60 * 1000; // drafts older than 12h are stale — start fresh instead
   try {
     const d = JSON.parse(localStorage.getItem(key));
-    if(d){ Object.entries(d).forEach(([k,v]) => { const el = form.elements[k]; if(el && el.type !== 'hidden' && el.type !== 'submit') el.value = v; }); restored = true; }
+    if(d && d._t && Date.now() - d._t > MAX_AGE){ localStorage.removeItem(key); }
+    else if(d){ Object.entries(d).forEach(([k,v]) => { const el = form.elements[k]; if(el && el.type !== 'hidden' && el.type !== 'submit') el.value = v; }); restored = true; }
   } catch(e){}
-  const save = () => { const o = {}; new FormData(form).forEach((v,k) => { if(k !== 'id') o[k] = v; }); localStorage.setItem(key, JSON.stringify(o)); };
+  const save = () => { const o = { _t: Date.now() }; new FormData(form).forEach((v,k) => { if(k !== 'id') o[k] = v; }); localStorage.setItem(key, JSON.stringify(o)); };
   form.addEventListener('input', save); form.addEventListener('change', save);
   return restored;
 }
