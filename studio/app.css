@@ -136,6 +136,14 @@ textarea{min-height:84px;resize:vertical}
 .ritem .grow{color:var(--ink)}
 .radd{display:grid;grid-template-columns:1fr 58px 84px auto;gap:.35rem;margin-top:.35rem}
 .inline-form.qty{grid-template-columns:1fr 66px 92px auto}
+/* inline editing */
+.iconbtn.txt{font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--terra)}
+.iconbtn.txt:hover{color:var(--slate)}
+.iedit{display:grid;grid-template-columns:1fr 58px 84px;gap:.35rem;width:100%;padding:.3rem 0}
+.iedit input{padding:.45rem .6rem;font-size:.9rem}
+.iedit .btns{grid-column:1/-1;display:flex;gap:.4rem}
+.redit{background:var(--paper-2);border-radius:12px;padding:.6rem .9rem .9rem;margin:.2rem 0 .6rem}
+.redit label{margin-top:.5rem}
 .line-row.qty{grid-template-columns:1fr 62px 90px auto}
 @media(max-width:420px){.inline-form.qty{grid-template-columns:1fr 56px 80px auto}.line-row.qty{grid-template-columns:1fr 54px 78px auto}.radd{grid-template-columns:1fr 50px 74px auto}}
 .radd input{padding:.4rem .6rem;font-size:.85rem}

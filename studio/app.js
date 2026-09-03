@@ -160,6 +160,7 @@ class LocalDB {
   async listReceipts(eventId){ return (this.d.receipts||[]).filter(r => !eventId || r.event_id === eventId).map(r => ({...r})); }
   async addReceipt(r, file){ r.id = uid(); r.created_at = new Date().toISOString(); if(file){ r.image_data = await fileToDataURL(await compressImage(file)); } (this.d.receipts = this.d.receipts || []).push(r); this.save(); return {...r}; }
   async deleteReceipt(id){ this.d.receipts = (this.d.receipts||[]).filter(r => r.id !== id); this.d.expenses.forEach(x => { if(x.receipt_id === id) x.receipt_id = null; }); this.save(); }
+  async updateReceipt(id, patch, file){ const r = (this.d.receipts||[]).find(x => x.id === id); if(!r) return; Object.assign(r, patch); if(file) r.image_data = await fileToDataURL(await compressImage(file)); this.save(); return {...r}; }
   async receiptUrl(r){ return r.image_data || null; }
   async listChecklist(eventId){ return this.d.checklist.filter(x => x.event_id === eventId).sort((a,b) => a.sort - b.sort).map(x => ({...x})); }
   async addChecklist(items){ items.forEach(it => { it.id = uid(); this.d.checklist.push(it); }); this.save(); return items; }
@@ -199,6 +200,17 @@ class SupaDB {
     const { error } = await this.sb.from('receipts').delete().eq('id', id); if(error) throw error;
   }
   async receiptUrl(r){ if(!r.image_path) return null; const { data } = await this.sb.storage.from('receipts').createSignedUrl(r.image_path, 3600); return data ? data.signedUrl : null; }
+  async updateReceipt(id, patch, file){
+    if(file){
+      const blob = await compressImage(file);
+      const { data:{ user } } = await this.sb.auth.getUser();
+      const path = `${user.id}/${id}.jpg`;
+      const up = await this.sb.storage.from('receipts').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+      if(up.error) throw up.error;
+      patch = { ...patch, image_path: path };
+    }
+    const { data, error } = await this.sb.from('receipts').update(patch).eq('id', id).select().single(); if(error) throw error; return data;
+  }
   async listChecklist(eventId){ const { data, error } = await this.sb.from('checklist').select('*').eq('event_id', eventId).order('sort'); if(error) throw error; return data; }
   async addChecklist(items){ const { data, error } = await this.sb.from('checklist').insert(items).select(); if(error) throw error; return data; }
   async toggleChecklist(id, done){ const { error } = await this.sb.from('checklist').update({ done }).eq('id', id); if(error) throw error; }
@@ -275,6 +287,7 @@ async function render(){
   if(S.mode === 'live' && !S.user){ app.innerHTML = viewLogin(); bindLogin(); return; }
   try { await refresh(); } catch(err){ app.innerHTML = `<div class="empty"><span class="hand">hmm, couldn't load</span>${esc(err.message||err)}</div>`; return; }
   const r = route();
+  if(r.view !== 'event'){ S._editItem = null; S._editReceipt = null; }
   let body = '';
   try {
     if(r.view === 'home') body = viewHome();
@@ -437,6 +450,7 @@ async function viewEvent(id){
   const spend = costs.trueCost;
   const agreed = num(e.price_agreed), bal = balanceOf(e), profit = agreed - spend;
   const rlabel = r => `${r.vendor || 'Receipt'} · ${fmtDate(r.receipt_date)}`;
+  const itemEditForm = x => `<form class="iedit" data-id="${x.id}"><input name="item" value="${esc(x.item)}" placeholder="Item" required/><input name="qty" type="number" step="any" min="0" placeholder="qty" value="${x.qty??''}"/><input name="cost" type="number" step="0.01" min="0" value="${num(x.cost)}" required/><div class="btns"><button class="btn sand sm" type="submit">Save</button><button type="button" class="btn soft sm" data-action="cancel-edit">Cancel</button></div></form>`;
   const doneCount = checklist.filter(c => c.done).length;
   const contact = esc(e.client_contact || '');
   const contactLink = !e.client_contact ? '' : /^@/.test(e.client_contact) ? `<a href="https://instagram.com/${esc(e.client_contact.slice(1))}" target="_blank" rel="noopener">${contact}</a>` : /@.+\./.test(e.client_contact) ? `<a href="mailto:${contact}">${contact}</a>` : /\d{3}/.test(e.client_contact) ? `<a href="tel:${esc(e.client_contact.replace(/[^\d+]/g,''))}">${contact}</a>` : contact;
@@ -491,10 +505,25 @@ async function viewEvent(id){
             <div class="tiny muted">items ${money2(sub)} · ship ${money2(r.shipping)} · tax ${money2(r.tax)}</div>
             ${r.notes?`<div class="tiny muted">${esc(r.notes)}</div>`:''}</div>
           <b>${money2(sub + num(r.shipping) + num(r.tax))}</b>
+          <button class="iconbtn txt" data-action="edit-receipt" data-id="${r.id}">edit</button>
           <button class="iconbtn" data-action="del-receipt" data-id="${r.id}" aria-label="Remove receipt">×</button>
         </div>
+        ${S._editReceipt === r.id ? `<form class="redit" id="receiptEdit" data-id="${r.id}">
+          <div class="grid2">
+            <div><label>Store / vendor</label><input name="vendor" list="vendorList" value="${esc(r.vendor||'')}"/></div>
+            <div><label>Date</label><input name="receipt_date" type="date" value="${esc(r.receipt_date||'')}"/></div>
+          </div>
+          <div class="grid3">
+            <div><label>Items subtotal</label><input name="subtotal" type="number" step="0.01" min="0" value="${num(r.subtotal)||''}"/></div>
+            <div><label>Shipping</label><input name="shipping" type="number" step="0.01" min="0" value="${num(r.shipping)||''}"/></div>
+            <div><label>Tax</label><input name="tax" type="number" step="0.01" min="0" value="${num(r.tax)||''}"/></div>
+          </div>
+          <label>${urls[r.id]?'Replace photo (optional)':'Add photo (optional)'}</label><input name="photo" type="file" accept="image/*" capture="environment"/>
+          <label>Notes</label><input name="notes" value="${esc(r.notes||'')}"/>
+          <div class="row mt"><button class="btn sand sm" type="submit">Save changes</button><button type="button" class="btn soft sm" data-action="cancel-edit">Cancel</button></div>
+        </form>` : ''}
         <div class="ritems">
-          ${mine.map(x=>`<div class="ritem"><span class="grow">${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></span><span>${money2(x.cost)}</span><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove item">×</button></div>`).join('')}
+          ${mine.map(x=> S._editItem === x.id ? itemEditForm(x) : `<div class="ritem"><span class="grow">${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></span><span>${money2(x.cost)}</span><button class="iconbtn txt" data-action="edit-item" data-id="${x.id}">edit</button><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove item">×</button></div>`).join('')}
           ${num(r.subtotal) && mine.length && Math.abs(num(r.subtotal)-linked)>0.005 ? `<div class="tiny muted">items add to ${money2(linked)} of the ${money2(r.subtotal)} subtotal</div>` : ''}
           <form class="radd" data-receipt="${r.id}"><input name="rname" placeholder="+ item on this receipt" required/><input name="rqty" type="number" step="any" min="0" inputmode="numeric" placeholder="qty"/><input name="rcost" type="number" step="0.01" min="0" placeholder="$" required/><button class="btn sand sm" type="submit">Add</button></form>
         </div>
@@ -522,7 +551,7 @@ async function viewEvent(id){
 
       ${(() => { const loose = expenses.filter(x => !x.receipt_id); return `
       <div class="between" style="margin-top:1.2rem"><h3 style="margin:0">Other items</h3><span class="tiny muted">no receipt — cash, odds &amp; ends</span></div>
-      ${loose.length ? `<ul class="list">${loose.map(x=>`<li><div class="grow"><div>${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
+      ${loose.length ? `<ul class="list">${loose.map(x=> S._editItem === x.id ? `<li>${itemEditForm(x)}</li>` : `<li><div class="grow"><div>${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn txt" data-action="edit-item" data-id="${x.id}">edit</button><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
       <form class="inline-form qty" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Resin sea creatures" required/></div><div><label>Qty</label><input name="qty" type="number" step="any" min="0" inputmode="numeric" placeholder="#"/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
       <input name="store" id="expenseStore" placeholder="Where (optional)" style="margin-top:.5rem"/>`; })()}
     </div>
@@ -714,6 +743,9 @@ function bind(r){
     if(a === 'status'){ ev.preventDefault(); const e = S.events.find(x => x.id === r.id); e.status = el.dataset.status; await S.db.saveEvent(e); toast('Moved to ' + e.status); return render(); }
     if(a === 'del-expense'){ ev.preventDefault(); await S.db.deleteExpense(el.dataset.id); return render(); }
     if(a === 'del-receipt'){ ev.preventDefault(); if(!confirm('Remove this receipt? Linked items stay, just unlinked.')) return; await S.db.deleteReceipt(el.dataset.id); toast('Receipt removed'); return render(); }
+    if(a === 'edit-item'){ S._editItem = el.dataset.id; S._editReceipt = null; return render(); }
+    if(a === 'edit-receipt'){ S._editReceipt = el.dataset.id; S._editItem = null; return render(); }
+    if(a === 'cancel-edit'){ S._editItem = null; S._editReceipt = null; return render(); }
     if(a === 'jump'){ const t = document.getElementById(el.dataset.target); if(t) t.scrollIntoView({behavior:'smooth', block:'start'}); return; }
     if(a === 'del-check'){ ev.preventDefault(); await S.db.deleteChecklist(el.dataset.id); return render(); }
     if(a === 'load-packing' || a === 'load-packing-for'){
@@ -822,6 +854,21 @@ function bind(r){
     await S.db.addExpense({ event_id: r.id, item: (f.get('rname')||'').trim(), qty: f.get('rqty') === '' ? null : num(f.get('rqty')), cost: num(f.get('rcost')), store: rec ? rec.vendor : '', receipt_id: rid });
     toast('Added to receipt'); render();
   });
+  // inline edits — items and receipts
+  $$('.iedit').forEach(fe => fe.onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(fe);
+    await S.db.updateExpense(fe.dataset.id, { item: (f.get('item')||'').trim(), qty: f.get('qty') === '' ? null : num(f.get('qty')), cost: num(f.get('cost')) });
+    S._editItem = null; toast('Item updated'); render();
+  });
+  const re = $('#receiptEdit');
+  if(re) re.onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(re); const btn = re.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Saving…';
+    const file = re.elements.photo.files[0] || null;
+    try {
+      await S.db.updateReceipt(re.dataset.id, { vendor: (f.get('vendor')||'').trim(), receipt_date: f.get('receipt_date') || null, subtotal: num(f.get('subtotal')), shipping: num(f.get('shipping')), tax: num(f.get('tax')), notes: (f.get('notes')||'').trim() }, file);
+      S._editReceipt = null; toast('Receipt updated'); render();
+    } catch(err){ btn.disabled = false; btn.textContent = 'Save changes'; alert('Could not update receipt: ' + (err.message||err)); }
+  };
   const cf = $('#checkForm');
   if(cf) cf.onsubmit = async e => { e.preventDefault(); const f = new FormData(cf); const existing = await S.db.listChecklist(r.id); await S.db.addChecklist([{ event_id: r.id, label: f.get('label').trim(), done:false, sort: existing.length }]); render(); };
 
