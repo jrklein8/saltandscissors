@@ -61,6 +61,19 @@ const balanceOf = ev => Math.max(0, num(ev.price_agreed) - (ev.paid_in_full ? nu
 const collectedOf = ev => ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0);
 const isActive = ev => ev.status !== 'lost';
 const download = (name, text, type='text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+/* form drafts — survive app switching / tab reloads on phones */
+const draftKey = id => 'sss_draft_' + (id || 'new');
+function attachDraft(form, key){
+  let restored = false;
+  try {
+    const d = JSON.parse(localStorage.getItem(key));
+    if(d){ Object.entries(d).forEach(([k,v]) => { const el = form.elements[k]; if(el && el.type !== 'hidden' && el.type !== 'submit') el.value = v; }); restored = true; }
+  } catch(e){}
+  const save = () => { const o = {}; new FormData(form).forEach((v,k) => { if(k !== 'id') o[k] = v; }); localStorage.setItem(key, JSON.stringify(o)); };
+  form.addEventListener('input', save); form.addEventListener('change', save);
+  return restored;
+}
+const clearDraft = key => localStorage.removeItem(key);
 let toastT; const toast = msg => { let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); };
 
 /* ============================================================
@@ -151,13 +164,22 @@ function route(){
 const go = h => { location.hash = h; };
 
 async function boot(){
-  if(SUPABASE_URL && SUPABASE_KEY && window.supabase){
+  const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
+  const forceDemo = isLocal && new URLSearchParams(location.search).has('demo'); // ?demo=1 on localhost = sample data, no login
+  if(SUPABASE_URL && SUPABASE_KEY && window.supabase && !forceDemo){
     S.mode = 'live';
     S.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     S.db = new SupaDB(S.sb);
     const { data:{ session } } = await S.sb.auth.getSession();
     S.user = session ? session.user : null;
-    S.sb.auth.onAuthStateChange((_e, sess) => { S.user = sess ? sess.user : null; render(); });
+    // Only re-render when the signed-in user actually changes. Token refreshes
+    // (which fire every time the app comes back to the foreground on a phone)
+    // must NOT rebuild the screen — that was wiping half-typed forms.
+    S.sb.auth.onAuthStateChange((_e, sess) => {
+      const prevId = S.user ? S.user.id : null, nextId = sess ? sess.user.id : null;
+      S.user = sess ? sess.user : null;
+      if(prevId !== nextId) render();
+    });
   } else {
     // Demo mode only runs on a local dev server — never on the public site
     const local = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
@@ -570,6 +592,7 @@ function bind(r){
     const el = ev.target.closest('[data-action]'); if(!el) return;
     const a = el.dataset.action;
     if(a === 'new') return go('#/new');
+    if(a === 'discard-draft'){ clearDraft(el.dataset.key); toast('Draft discarded'); return render(); }
     if(a === 'filter'){ const q = route().q; const p = new URLSearchParams(q); p.set('status', el.dataset.status); return go('#/events?' + p.toString()); }
     if(a === 'month') return go('#/money?m=' + el.dataset.m);
     if(a === 'status'){ ev.preventDefault(); const e = S.events.find(x => x.id === r.id); e.status = el.dataset.status; await S.db.saveEvent(e); toast('Moved to ' + e.status); return render(); }
@@ -597,13 +620,18 @@ function bind(r){
   const ef = $('#eventForm');
   if(ef){
     const upd = () => { const qb = $('#quoteBox'); const { html, total } = quoteFor($('#fExp').value, $('#fGuests').value); qb.innerHTML = html; qb.dataset.total = total ?? ''; };
+    const dkey = draftKey(ef.elements.id.value || 'new');
+    if(attachDraft(ef, dkey)){
+      toast('Restored what you were typing');
+      $('main h1').insertAdjacentHTML('afterend', `<button type="button" class="btn soft sm" data-action="discard-draft" data-key="${dkey}" style="margin-bottom:.6rem">Discard unsaved changes</button>`);
+    }
     $('#fExp').onchange = upd; $('#fGuests').oninput = upd; upd();
     ef.onsubmit = async e => {
       e.preventDefault(); const f = new FormData(ef); const o = Object.fromEntries(f.entries());
       const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:o.source, occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, guest_count:o.guest_count===''?null:parseInt(o.guest_count,10), event_date:o.event_date||null, event_time:o.event_time||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit) };
       const prev = o.id ? S.events.find(x => x.id === o.id) : null;
       if(prev){ ev.deposit_paid = prev.deposit_paid; ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.deposit_paid = false; ev.paid_in_full = false; }
-      try { const saved = await S.db.saveEvent(ev); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); }
+      try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); }
     };
   }
 
@@ -615,8 +643,9 @@ function bind(r){
 
   // settings form
   const sf = $('#settingsForm');
+  if(sf) attachDraft(sf, 'sss_draft_settings');
   if(sf) sf.onsubmit = async e => {
-    e.preventDefault(); const f = new FormData(sf); const s = JSON.parse(JSON.stringify(S.settings));
+    e.preventDefault(); clearDraft('sss_draft_settings'); const f = new FormData(sf); const s = JSON.parse(JSON.stringify(S.settings));
     s.ownerName = f.get('ownerName').trim() || 'there'; s.extraGuestRate = num(f.get('extraGuestRate'));
     s.experiences = s.experiences.map((x,i) => ({ name: (f.get('exp_name_'+i)||x.name).trim(), price: num(f.get('exp_price_'+i)), included: parseInt(f.get('exp_inc_'+i)||0,10) }));
     const packing = {}; Object.keys(s.packing).forEach(k => { packing[k] = (f.get('pack_'+k)||'').split('\n').map(x => x.trim()).filter(Boolean); });
