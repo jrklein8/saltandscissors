@@ -5,8 +5,8 @@
    SETUP: paste your Supabase project URL + publishable key below.
    Leave both empty to run in DEMO mode (sample data on this device).
    ============================================================ */
-const SUPABASE_URL = '';
-const SUPABASE_KEY = '';
+const SUPABASE_URL = 'https://lvurqxxyuvgrcfkguyje.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vZC-aXl96Dq5lWQEGO-lkQ_udh8Yi2j';
 
 /* ---------- business defaults (editable in Settings) ---------- */
 const DEFAULT_SETTINGS = {
