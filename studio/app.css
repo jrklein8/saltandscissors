@@ -129,6 +129,15 @@ textarea{min-height:84px;resize:vertical}
 .receipt{display:flex;gap:.7rem;align-items:center;padding:.6rem 0;border-top:1px dashed var(--line)}
 .receipt img,.rthumb{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none;background:var(--paper-2);display:grid;place-items:center;font-size:.6rem;line-height:1.1;color:#9aa5a2;text-align:center;font-weight:700}
 .rsel{width:auto;font-size:.72rem;padding:.2rem .4rem;border-radius:8px;max-width:150px;display:inline-block}
+.receipt-block{border-top:1px dashed var(--line)}
+.receipt-block .receipt{border-top:none}
+.ritems{margin:0 0 .6rem 66px;padding-left:.6rem;border-left:2px solid var(--paper-2)}
+.ritem{display:flex;align-items:center;gap:.5rem;font-size:.86rem;padding:.2rem 0;color:var(--ink-soft)}
+.ritem .grow{color:var(--ink)}
+.radd{display:grid;grid-template-columns:1fr 84px auto;gap:.35rem;margin-top:.35rem}
+.radd input{padding:.4rem .6rem;font-size:.85rem}
+.radd .btn{padding:.38rem .7rem}
+@media(max-width:480px){.ritems{margin-left:0}}
 details.addbox summary{list-style:none;display:inline-flex;cursor:pointer}
 details.addbox summary::-webkit-details-marker{display:none}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}

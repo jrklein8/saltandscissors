@@ -482,13 +482,20 @@ async function viewEvent(id){
     <div class="card" id="supplies">
       <div class="between"><h3>Receipts &amp; orders</h3><span class="money">${money2(costs.trueCost)}</span></div>
       <p class="tiny muted" style="margin:0 0 .3rem">Actual spend. Snap the receipt or Amazon order — subtotal, shipping and tax roll into the true event cost.</p>
-      ${receipts.length ? receipts.map(r => { const linked = costs.byReceipt[r.id]||0; const sub = num(r.subtotal) || linked; return `<div class="receipt">
-        ${urls[r.id]?`<a href="${urls[r.id]}" target="_blank" rel="noopener"><img src="${urls[r.id]}" alt="Receipt"/></a>`:`<div class="rthumb">no<br/>photo</div>`}
-        <div class="grow"><div><b>${esc(r.vendor||'Receipt')}</b> <span class="tiny muted">${fmtDate(r.receipt_date)}</span></div>
-          <div class="tiny muted">items ${money2(sub)}${!num(r.subtotal)&&linked?' (from linked items)':''} · ship ${money2(r.shipping)} · tax ${money2(r.tax)}${linked?` · ${expenses.filter(x=>x.receipt_id===r.id).length} linked`:''}</div>
-          ${r.notes?`<div class="tiny muted">${esc(r.notes)}</div>`:''}</div>
-        <b>${money2(sub + num(r.shipping) + num(r.tax))}</b>
-        <button class="iconbtn" data-action="del-receipt" data-id="${r.id}" aria-label="Remove receipt">×</button>
+      ${receipts.length ? receipts.map(r => { const mine = expenses.filter(x => x.receipt_id === r.id); const linked = costs.byReceipt[r.id]||0; const sub = num(r.subtotal) || linked; return `<div class="receipt-block">
+        <div class="receipt">
+          ${urls[r.id]?`<a href="${urls[r.id]}" target="_blank" rel="noopener"><img src="${urls[r.id]}" alt="Receipt"/></a>`:`<div class="rthumb">no<br/>photo</div>`}
+          <div class="grow"><div><b>${esc(r.vendor||'Receipt')}</b> <span class="tiny muted">${fmtDate(r.receipt_date)}</span></div>
+            <div class="tiny muted">items ${money2(sub)} · ship ${money2(r.shipping)} · tax ${money2(r.tax)}</div>
+            ${r.notes?`<div class="tiny muted">${esc(r.notes)}</div>`:''}</div>
+          <b>${money2(sub + num(r.shipping) + num(r.tax))}</b>
+          <button class="iconbtn" data-action="del-receipt" data-id="${r.id}" aria-label="Remove receipt">×</button>
+        </div>
+        <div class="ritems">
+          ${mine.map(x=>`<div class="ritem"><span class="grow">${esc(x.item)}</span><span>${money2(x.cost)}</span><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove item">×</button></div>`).join('')}
+          ${num(r.subtotal) && mine.length && Math.abs(num(r.subtotal)-linked)>0.005 ? `<div class="tiny muted">items add to ${money2(linked)} of the ${money2(r.subtotal)} subtotal</div>` : ''}
+          <form class="radd" data-receipt="${r.id}"><input name="rname" placeholder="+ item on this receipt" required/><input name="rcost" type="number" step="0.01" min="0" placeholder="$" required/><button class="btn sand sm" type="submit">Add</button></form>
+        </div>
       </div>`; }).join('') : ''}
       <details class="addbox mt"><summary class="btn soft sm">+ Add receipt / order</summary>
         <form id="receiptForm" class="mt">
@@ -496,22 +503,26 @@ async function viewEvent(id){
             <div><label>Store / vendor</label><input name="vendor" list="vendorList" placeholder="Amazon"/><datalist id="vendorList">${VENDORS.map(v=>`<option value="${v}">`).join('')}</datalist></div>
             <div><label>Date</label><input name="receipt_date" type="date" value="${todayISO()}"/></div>
           </div>
-          <div class="grid3">
-            <div><label>Items subtotal</label><input name="subtotal" type="number" step="0.01" min="0" placeholder="0.00"/></div>
+          <label>Items on this receipt</label>
+          <div id="rlines"></div>
+          <button type="button" class="btn soft sm" id="rlineAdd" style="margin-top:.5rem">+ Item</button>
+          <div class="grid3" style="margin-top:.4rem">
+            <div><label>Items subtotal</label><input name="subtotal" id="rSubtotal" type="number" step="0.01" min="0" placeholder="0.00"/></div>
             <div><label>Shipping</label><input name="shipping" type="number" step="0.01" min="0" placeholder="0.00"/></div>
             <div><label>Tax</label><input name="tax" type="number" step="0.01" min="0" placeholder="0.00"/></div>
           </div>
+          <p class="tiny muted" style="margin:.3rem 0 0">Subtotal adds itself up from the items — or just type the receipt's subtotal if you'd rather skip itemizing.</p>
           <label>Photo of receipt (optional)</label><input name="photo" type="file" accept="image/*" capture="environment"/>
           <label>Notes</label><input name="notes" placeholder="Order #, what it was for…"/>
           <button class="btn sand sm mt" type="submit">Save receipt</button>
         </form>
       </details>
 
-      <div class="between" style="margin-top:1.2rem"><h3 style="margin:0">Items</h3><span class="tiny muted">what each package costs to make</span></div>
-      ${expenses.length ? `<ul class="list">${expenses.map(x=>`<li><div class="grow"><div>${esc(x.item)}</div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}" ${x.receipt_id===r.id?'selected':''}>${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted">Nothing itemized yet. Add what you bought for this party.</p>`}
-      <form class="inline-form" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Sundae cups (25)" required/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
-      <div class="grid2" style="margin-top:.5rem"><input name="store" id="expenseStore" placeholder="Where (optional)"/>${receipts.length?`<select id="expenseReceipt"><option value="">Link to receipt…</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:''}</div>
-      <p class="tiny muted" style="margin:.5rem 0 0">Items linked to a receipt are detail — the receipt's subtotal is what counts. Unlinked items count on their own.</p>
+      ${(() => { const loose = expenses.filter(x => !x.receipt_id); return `
+      <div class="between" style="margin-top:1.2rem"><h3 style="margin:0">Other items</h3><span class="tiny muted">no receipt — cash, odds &amp; ends</span></div>
+      ${loose.length ? `<ul class="list">${loose.map(x=>`<li><div class="grow"><div>${esc(x.item)}</div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
+      <form class="inline-form" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Ribbon from the craft bin" required/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
+      <input name="store" id="expenseStore" placeholder="Where (optional)" style="margin-top:.5rem"/>`; })()}
     </div>
 
     <div class="card">
@@ -778,13 +789,37 @@ function bind(r){
   const xf = $('#expenseForm');
   if(xf) xf.onsubmit = async e => { e.preventDefault(); const f = new FormData(xf); const rsel = $('#expenseReceipt'); await S.db.addExpense({ event_id: r.id, item: f.get('item').trim(), cost: num(f.get('cost')), store: ($('#expenseStore').value||'').trim(), receipt_id: (rsel && rsel.value) ? rsel.value : null }); toast('Added'); render(); };
   const rf = $('#receiptForm');
-  if(rf) rf.onsubmit = async e => {
-    e.preventDefault(); const f = new FormData(rf); const btn = rf.querySelector('button'); btn.disabled = true; btn.textContent = 'Saving…';
-    const file = rf.elements.photo.files[0] || null;
-    const rec = { event_id: r.id, vendor: (f.get('vendor')||'').trim(), receipt_date: f.get('receipt_date') || null, subtotal: num(f.get('subtotal')), shipping: num(f.get('shipping')), tax: num(f.get('tax')), notes: (f.get('notes')||'').trim() };
-    try { await S.db.addReceipt(rec, file); toast(file ? 'Receipt saved with photo' : 'Receipt saved'); render(); }
-    catch(err){ btn.disabled = false; btn.textContent = 'Save receipt'; alert('Could not save receipt: ' + (err.message||err)); }
-  };
+  if(rf){
+    // itemized receipt: item rows sum into the subtotal
+    const rl = $('#rlines'); let rlines = [];
+    const rsync = () => { const t = rlines.reduce((s,l) => s + num(l.cost), 0); if(rlines.length) $('#rSubtotal').value = t ? t.toFixed(2) : ''; };
+    const rrender = (focusLast) => {
+      rl.innerHTML = rlines.map((l,i) => `<div class="line-row" data-i="${i}"><input class="rl-label" placeholder="Item (e.g. Sundae cups 25 pk)" value="${esc(l.item||'')}"/><input class="rl-amt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="$" value="${l.cost===''||l.cost==null?'':l.cost}"/><button type="button" class="iconbtn rl-del" aria-label="Remove">×</button></div>`).join('');
+      rsync();
+      if(focusLast && rlines.length){ rl.querySelectorAll('.line-row')[rlines.length-1].querySelector('.rl-label').focus(); }
+    };
+    rl.addEventListener('input', ev => { const row = ev.target.closest('.line-row'); if(!row) return; const i = +row.dataset.i; if(ev.target.classList.contains('rl-label')) rlines[i].item = ev.target.value; else rlines[i].cost = ev.target.value === '' ? '' : num(ev.target.value); rsync(); });
+    rl.addEventListener('click', ev => { const b = ev.target.closest('.rl-del'); if(!b) return; rlines.splice(+b.closest('.line-row').dataset.i, 1); rrender(); });
+    $('#rlineAdd').addEventListener('click', () => { rlines.push({ item:'', cost:'' }); rrender(true); });
+    rf.onsubmit = async e => {
+      e.preventDefault(); const f = new FormData(rf); const btn = rf.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Saving…';
+      const file = rf.elements.photo.files[0] || null;
+      const items = rlines.filter(l => (l.item||'').trim());
+      const rec = { event_id: r.id, vendor: (f.get('vendor')||'').trim(), receipt_date: f.get('receipt_date') || null, subtotal: num(f.get('subtotal')), shipping: num(f.get('shipping')), tax: num(f.get('tax')), notes: (f.get('notes')||'').trim() };
+      try {
+        const saved = await S.db.addReceipt(rec, file);
+        for(const l of items) await S.db.addExpense({ event_id: r.id, item: l.item.trim(), cost: num(l.cost), store: rec.vendor, receipt_id: saved.id });
+        toast(`Receipt saved${items.length ? ' with ' + items.length + ' item' + (items.length===1?'':'s') : ''}${file ? ' + photo' : ''}`); render();
+      } catch(err){ btn.disabled = false; btn.textContent = 'Save receipt'; alert('Could not save receipt: ' + (err.message||err)); }
+    };
+  }
+  // add an item straight onto an existing receipt
+  $$('.radd').forEach(fr => fr.onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(fr); const rid = fr.dataset.receipt;
+    const rec = (S._allReceipts||[]).find(x => x.id === rid);
+    await S.db.addExpense({ event_id: r.id, item: (f.get('rname')||'').trim(), cost: num(f.get('rcost')), store: rec ? rec.vendor : '', receipt_id: rid });
+    toast('Added to receipt'); render();
+  });
   const cf = $('#checkForm');
   if(cf) cf.onsubmit = async e => { e.preventDefault(); const f = new FormData(cf); const existing = await S.db.listChecklist(r.id); await S.db.addChecklist([{ event_id: r.id, label: f.get('label').trim(), done:false, sort: existing.length }]); render(); };
 
