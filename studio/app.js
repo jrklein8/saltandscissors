@@ -231,6 +231,15 @@ class LocalDB {
   async addChecklist(items){ items.forEach(it => { it.id = uid(); this.d.checklist.push(it); }); this.save(); return items; }
   async toggleChecklist(id, done){ const it = this.d.checklist.find(x => x.id === id); if(it) it.done = done; this.save(); }
   async deleteChecklist(id){ this.d.checklist = this.d.checklist.filter(x => x.id !== id); this.save(); }
+  // demo stand-in for her personal calendar, so the soft-red days can be seen without linking anything
+  async personalEvents(from, to){
+    const out = [], add = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
+    for(let n = -35; n <= 70; n++){ const x = new Date(); x.setDate(x.getDate() + n); if(x.getDay() === 2) out.push({ date: add(n), allDay:false, start:'17:00', end:'18:00', title:'Soccer practice' }); }
+    out.push({ date: add(5), allDay:false, start:'13:00', end:'15:00', title:"Stevie's recital" }, { date: add(8), allDay:false, start:'10:00', end:'11:00', title:'Dentist' });
+    [13,14,15].forEach(n => out.push({ date: add(n), allDay:true, start:null, end:null, title:'Family beach trip' }));
+    const titles = this.d.settings && this.d.settings.personalCalTitles === false;
+    return out.filter(e => e.date >= from && e.date <= to).map(e => titles ? { ...e, title:'Busy' } : e).sort((a,b) => a.date.localeCompare(b.date));
+  }
   async listHunts(){ return (this.d.hunts||[]).map(h => JSON.parse(JSON.stringify(h))); }
   async saveHunt(h){ this.d.hunts = this.d.hunts || []; const now = new Date().toISOString(); h.updated_at = now; const i = this.d.hunts.findIndex(x => x.id === h.id); if(i < 0){ h.id = h.id || uid(); h.created_at = now; this.d.hunts.push(h); } else this.d.hunts[i] = h; this.save(); return JSON.parse(JSON.stringify(h)); }
   async deleteHunt(id){ this.d.hunts = (this.d.hunts||[]).filter(h => h.id !== id); this.save(); }
@@ -283,6 +292,13 @@ class SupaDB {
   async addChecklist(items){ const { data, error } = await this.sb.from('checklist').insert(items).select(); if(error) throw error; return data; }
   async toggleChecklist(id, done){ const { error } = await this.sb.from('checklist').update({ done }).eq('id', id); if(error) throw error; }
   async deleteChecklist(id){ const { error } = await this.sb.from('checklist').delete().eq('id', id); if(error) throw error; }
+  // her personal calendar, read through the calendar-feed edge function (browsers can't fetch Google's link directly)
+  async personalEvents(from, to){
+    const { data, error } = await this.sb.functions.invoke('calendar-feed', { body: { from, to } });
+    if(error){ let msg = error.message || 'Could not reach the calendar relay'; try { const j = await error.context.json(); if(j && j.error) msg = j.error; } catch(e){} throw new Error(msg); }
+    if(data && data.error) throw new Error(data.error);
+    return (data && data.events) || [];
+  }
   async listHunts(){ const { data, error } = await this.sb.from('hunts').select('*').order('created_at', {ascending:false}); if(error) throw error; return data; }
   async saveHunt(h){ const row = {...h}; if(!row.id) delete row.id; delete row.created_at; delete row.user_id; row.updated_at = new Date().toISOString(); const { data, error } = await this.sb.from('hunts').upsert(row).select().single(); if(error) throw error; return data; }
   async deleteHunt(id){ const { error } = await this.sb.from('hunts').delete().eq('id', id); if(error) throw error; }
@@ -334,6 +350,8 @@ async function boot(){
     S.db = new LocalDB();
   }
   window.addEventListener('hashchange', render);
+  // tap anywhere else to close an open "Add to calendar" menu
+  document.addEventListener('click', ev => { $$('details.calmenu[open]').forEach(d => { if(!d.contains(ev.target)) d.removeAttribute('open'); }); });
   render();
 }
 
@@ -380,7 +398,8 @@ async function render(){
   } catch(err){ body = `<div class="empty"><span class="hand">something hiccuped</span>${esc(err.message||err)}</div>`; }
   if(r.view !== 'hunt') S._editOpt = null;
   // same screen re-rendering (added an item, saved an edit) keeps your place; a new screen starts at the top
-  const keepY = S._lastHash === location.hash ? window.scrollY : 0;
+  const screenOf = h => (h || '').split('?')[0]; // tapping a day or month is the same screen — don't jump to the top
+  const keepY = screenOf(S._lastHash) === screenOf(location.hash) ? window.scrollY : 0;
   S._lastHash = location.hash;
   app.innerHTML = shell(body, ['hunt','hunt-new','hunt-edit'].includes(r.view) ? 'supplies' : r.view);
   bind(r);
@@ -490,16 +509,159 @@ function viewHome(){
 
 function eventCard(e){
   const bal = balanceOf(e);
+  const clash = e.event_date && e.event_date >= todayISO() && isActive(e) && e.status !== 'done' ? worstClash(eventClashes(e.event_date, e.event_time, e.event_end, e.id).filter(c => c.kind !== 'day')) : '';
   return `<a class="card tap ev" href="#/event/${e.id}">
     <div class="between"><span class="when">${fmtDate(e.event_date)}${e.event_time?' · '+fmtTime(e.event_time):''}</span><span class="countdown">${countdown(e.event_date)}</span></div>
     <div class="name">${esc(e.client_name)}${e.honoree?` <span class="muted small">· ${esc(e.honoree)}</span>`:''}</div>
     <div class="meta">${esc(e.experience||'Experience TBD')} · ${esc(e.occasion||'')}${e.guest_count?' · '+e.guest_count+' guests':''}${e.location?' · '+esc(e.location):''}</div>
-    <div class="row wrap" style="margin-top:.45rem"><span class="pill ${e.status}">${e.status}</span>${num(e.price_agreed)?`<span class="money" style="font-size:1rem">${money(e.price_agreed)}</span>`:''}${bal>0&&e.status!=='inquiry'?`<span class="pill due">${money(bal)} due</span>`:(e.paid_in_full?'<span class="pill paid">paid</span>':'')}</div>
+    <div class="row wrap" style="margin-top:.45rem"><span class="pill ${e.status}">${e.status}</span>${clash?`<span class="pill clash">${clash==='overlap'?'overlaps':'back-to-back'}</span>`:''}${num(e.price_agreed)?`<span class="money" style="font-size:1rem">${money(e.price_agreed)}</span>`:''}${bal>0&&e.status!=='inquiry'?`<span class="pill due">${money(bal)} due</span>`:(e.paid_in_full?'<span class="pill paid">paid</span>':'')}</div>
   </a>`;
 }
 
 /* ---------- EVENTS LIST ---------- */
+/* ---------- personal calendar (read-only) ---------- */
+const PERSONAL = {}; // monthKey -> { t, events, loading, error, waiters:[] }
+const personalOn = () => S.mode === 'demo' || !!(S.settings && S.settings.personalCalUrl);
+const clearPersonal = () => { Object.keys(PERSONAL).forEach(k => delete PERSONAL[k]); };
+// Returns what we have right now; fetches in the background if missing/stale and calls onReady when it lands.
+function personalMonth(mk, onReady){
+  if(!personalOn()) return null;
+  let c = PERSONAL[mk];
+  if(c && !c.loading && Date.now() - c.t < 10 * 60 * 1000) return c;
+  if(c && c.loading){ if(onReady) c.waiters.push(onReady); return c; }
+  c = PERSONAL[mk] = { t: Date.now(), events: c ? c.events : [], loading: true, error: null, waiters: onReady ? [onReady] : [] };
+  const [y, m] = mk.split('-').map(Number), pad = n => String(n).padStart(2, '0');
+  S.db.personalEvents(`${y}-${pad(m)}-01`, `${y}-${pad(m)}-${pad(new Date(y, m, 0).getDate())}`)
+    .then(ev => { c.events = ev; c.error = null; })
+    .catch(err => { c.error = err.message || String(err); })
+    .finally(() => { c.loading = false; c.t = Date.now(); const w = c.waiters; c.waiters = []; w.forEach(fn => { try { fn(c); } catch(e){} }); });
+  return c;
+}
+// Once she adds a Studio event to her Google calendar it comes back through the personal feed — that's not a "personal" plan.
+// Matched by our calendar title, or (busy-only mode hides titles) by the exact same day + hours as one of her events.
+function isStudioEcho(p){
+  if(/^Salt & Scissors:/i.test(p.title || '')) return true;
+  return !p.allDay && S.events.some(e => e.event_date === p.date && e.event_time && isActive(e) && e.event_time.slice(0, 5) === p.start && eventEndTime(e).slice(0, 5) === p.end);
+}
+const personalItems = c => ((c && c.events) || []).filter(p => !isStudioEcho(p));
+const pTime = p => p.allDay ? 'all day' : fmtTime(p.start) + (p.end && p.end !== '23:59' ? '–' + fmtTime(p.end) : '');
+function pOverlaps(p, time, end){ // does this personal item collide with the event's hours?
+  if(p.allDay || !time) return true;
+  let eEnd = end; if(!eEnd || eEnd <= time){ const [h, m] = time.split(':').map(Number); eEnd = String(Math.min(23, h + 2)).padStart(2, '0') + ':' + String(m).padStart(2, '0'); }
+  return p.start < eEnd && time < (p.end || '23:59');
+}
+// fills a placeholder element with a soft-red heads-up for one date (used on the event form + event page)
+function paintPersonalNote(el, date, time, end){
+  if(!el) return; el.innerHTML = '';
+  if(!date || !personalOn()) return;
+  const draw = c => { if(!el.isConnected || !c || c.error) return;
+    const items = personalItems(c).filter(p => p.date === date); if(!items.length) return;
+    const clash = items.filter(p => pOverlaps(p, time, end));
+    el.innerHTML = `<div class="pnote"><b>${clash.length && time ? 'Heads up — this overlaps your personal calendar' : 'You have personal plans that day'}</b>${items.map(p => `<div>${esc(pTime(p))} · ${esc(p.title)}${time && !p.allDay && pOverlaps(p, time, end) ? ' <span class="tiny">(overlaps)</span>' : ''}</div>`).join('')}</div>`; };
+  const c = personalMonth(monthKey(date), draw); if(c && !c.loading) draw(c);
+}
+
+/* ---------- double-booking heads-up (her own events vs each other) ---------- */
+const toMin = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+const minLabel = n => n >= 60 ? (n % 60 ? (n / 60).toFixed(1) : n / 60) + ' hr' : n + ' min';
+function spanOf(time, end){ // [start, end] in minutes — her end time, or start + 2h (same rule as the calendar export)
+  if(!time) return null;
+  const s = toMin(time); let e = end ? toMin(end) : NaN;
+  if(!(e > s)) e = Math.min(s + 120, 24 * 60 - 1);
+  return [s, e];
+}
+// other active events on the same day: 'overlap' (hours collide), 'tight' (under an hour between), or 'day' (same day only)
+function eventClashes(date, time, end, selfId){
+  if(!date) return [];
+  const me = spanOf(time, end);
+  return S.events.filter(o => o.event_date === date && isActive(o) && String(o.id) !== String(selfId || '')).map(o => {
+    const sp = spanOf(o.event_time, o.event_end); let kind = 'day', gap = null;
+    if(me && sp){ if(me[0] < sp[1] && sp[0] < me[1]) kind = 'overlap'; else { gap = me[0] >= sp[1] ? me[0] - sp[1] : sp[0] - me[1]; if(gap < 60) kind = 'tight'; } }
+    return { e: o, kind, gap };
+  }).sort((a, b) => (a.e.event_time || '').localeCompare(b.e.event_time || ''));
+}
+const worstClash = list => list.some(c => c.kind === 'overlap') ? 'overlap' : list.some(c => c.kind === 'tight') ? 'tight' : list.length ? 'day' : '';
+function clashNoteHTML(date, time, end, selfId, link){
+  const list = eventClashes(date, time, end, selfId); if(!list.length) return '';
+  const worst = worstClash(list);
+  const head = { overlap: 'Heads up — this overlaps another event', tight: 'Heads up — back-to-back with another event', day: list.length > 1 ? 'You have other events that day' : 'You have another event that day' }[worst];
+  const tip = worst !== 'day' ? 'You may need to line up extra help.' : (!time ? 'Add a start time to check whether they overlap.' : '');
+  return `<div class="pnote biz"><b>${head}</b>${list.map(c => { const o = c.e;
+    const hours = o.event_time ? fmtTime(o.event_time) + (o.event_end && o.event_end > o.event_time ? '–' + fmtTime(o.event_end) : '') + ' · ' : '';
+    const label = esc(hours + (o.client_name || 'Event') + (o.experience ? ' — ' + o.experience : ''));
+    const tag = c.kind === 'overlap' ? '(overlaps)' : c.kind === 'tight' ? (c.gap ? `(only ${minLabel(c.gap)} between)` : '(no gap between)') : (o.event_time ? '' : '(no time set)');
+    return `<div>${link ? `<a href="#/event/${o.id}">${label}</a>` : label} <span class="tiny">${esc(o.status)}${tag ? ' · ' + tag : ''}</span></div>`; }).join('')}${tip ? `<div class="tiny" style="margin-top:.25rem">${tip}</div>` : ''}</div>`;
+}
+// worst clash among one day's events (calendar cells + day panel)
+function dayClash(list){
+  let worst = '';
+  list.forEach(e => { const w = worstClash(eventClashes(e.event_date, e.event_time, e.event_end, e.id).filter(c => c.kind !== 'day')); if(w === 'overlap' || (w === 'tight' && !worst)) worst = w; });
+  return worst;
+}
+
+/* List | Calendar switch — remembers which one she used last */
+function eventsViewPref(q){
+  let pref = 'list';
+  try { if(q.view){ localStorage.setItem('sss_events_view', q.view); } pref = q.view || localStorage.getItem('sss_events_view') || 'list'; } catch(e){ pref = q.view || 'list'; }
+  return pref === 'cal' ? 'cal' : 'list';
+}
+const viewSwitch = on => `<div class="seg"><a class="${on==='list'?'on':''}" href="#/events?view=list">List</a><a class="${on==='cal'?'on':''}" href="#/events?view=cal">Calendar</a></div>`;
+
+function viewCalendar(q){
+  const today = todayISO();
+  const mk = q.m || monthKey(q.d || today);
+  const [y, mo] = mk.split('-').map(Number);
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${y}-${pad(mo)}-${pad(d)}`;
+  const daysIn = new Date(y, mo, 0).getDate(), lead = new Date(y, mo - 1, 1).getDay();
+  const keyOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1);
+  const prev = keyOf(new Date(y, mo - 2, 1)), next = keyOf(new Date(y, mo, 1));
+  const evs = S.events.filter(e => isActive(e) && e.event_date && monthKey(e.event_date) === mk);
+  const byDay = {}; evs.forEach(e => (byDay[e.event_date] = byDay[e.event_date] || []).push(e));
+  Object.values(byDay).forEach(a => a.sort((p, n) => (p.event_time || '').localeCompare(n.event_time || '')));
+  const sel = (q.d && monthKey(q.d) === mk) ? q.d : (monthKey(today) === mk ? today : (Object.keys(byDay).sort()[0] || null));
+  // personal commitments: paint now with what's cached, repaint when the fetch lands (only if she's still on this month)
+  const P = personalMonth(mk, () => { const r = route(); if(r.view === 'events' && eventsViewPref(r.q) === 'cal' && (r.q.m || monthKey(r.q.d || todayISO())) === mk) render(); });
+  const pByDay = {}; if(P) personalItems(P).forEach(p => (pByDay[p.date] = pByDay[p.date] || []).push(p));
+  const booked = evs.filter(e => ['booked','done'].includes(e.status));
+  const cells = [];
+  for(let i = 0; i < lead; i++) cells.push('<span class="cal-day blank"></span>');
+  for(let d = 1; d <= daysIn; d++){
+    const k = iso(d), list = byDay[k] || [], clash = list.length > 1 && k >= today ? dayClash(list) : '';
+    cells.push(`<a class="cal-day ${k === today ? 'today' : ''} ${k === sel ? 'sel' : ''} ${k < today ? 'past' : ''} ${pByDay[k] ? 'personal' : ''}" href="#/events?view=cal&m=${mk}&d=${k}" aria-label="${fmtDateLong(k)}${list.length ? ', ' + list.length + ' event' + (list.length === 1 ? '' : 's') : ''}${clash ? ', events ' + (clash === 'overlap' ? 'overlap' : 'back-to-back') : ''}${pByDay[k] ? ', personal plans' : ''}">
+      <span class="n">${d}</span>${clash ? '<span class="cal-flag" aria-hidden="true">!</span>' : ''}
+      ${list.slice(0, 3).map(e => `<span class="cal-ev ${e.status}">${e.event_time ? fmtTime(e.event_time) + ' ' : ''}${esc((e.client_name || '').split(' ')[0])}</span>`).join('')}
+      ${list.length > 3 ? `<span class="cal-more">+${list.length - 3}</span>` : ''}
+    </a>`);
+  }
+  const dayList = sel ? (byDay[sel] || []) : [];
+  return `
+    <span class="eyebrow">Events</span>
+    <div class="between"><h1 style="margin:0">Calendar</h1>${viewSwitch('cal')}</div>
+    <div class="between" style="margin:.9rem 0 .5rem">
+      <a class="btn soft sm" href="#/events?view=cal&m=${prev}" aria-label="Previous month">‹</a>
+      <div class="center"><div style="font-family:var(--disp);font-size:1.25rem;color:var(--slate)">${esc(monthLabel(mk))}</div>
+        <div class="tiny muted">${evs.length} event${evs.length === 1 ? '' : 's'}${booked.reduce((t, e) => t + num(e.price_agreed), 0) > 0 ? ' · ' + money(booked.reduce((t, e) => t + num(e.price_agreed), 0)) + ' booked' : ''}</div></div>
+      <a class="btn soft sm" href="#/events?view=cal&m=${next}" aria-label="Next month">›</a>
+    </div>
+    <div class="cal">
+      ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<span class="cal-dow">${d}</span>`).join('')}
+      ${cells.join('')}
+    </div>
+    <div class="between tiny muted" style="margin:.5rem 0 0"><span class="row wrap" style="gap:.6rem"><span><i class="dot inquiry"></i> inquiry</span><span><i class="dot quoted"></i> quoted</span><span><i class="dot booked"></i> booked</span><span><i class="dot done"></i> done</span>${P ? '<span><i class="dot personal"></i> personal</span>' : ''}</span>${monthKey(today) !== mk ? `<a href="#/events?view=cal&m=${monthKey(today)}&d=${today}">today</a>` : ''}</div>
+    ${P && P.loading ? '<p class="tiny muted" style="margin:.4rem 0 0">checking your personal calendar…</p>' : ''}
+    ${P && P.error ? `<p class="tiny" style="margin:.4rem 0 0"><span class="neg">Personal calendar: ${esc(P.error)}</span> <button class="iconbtn txt" data-action="personal-retry">retry</button></p>` : ''}
+    ${!P ? '<p class="tiny muted" style="margin:.4rem 0 0">Want your personal plans shaded here? <a href="#/settings">Link your calendar in Settings</a>.</p>' : ''}
+    ${sel ? `<h2 class="sec">${fmtDateLong(sel)}</h2>
+      ${(pByDay[sel] || []).length ? `<div class="pnote"><b>Personal</b>${pByDay[sel].map(p => `<div>${esc(pTime(p))} · ${esc(p.title)}</div>`).join('')}</div>` : ''}
+      ${(() => { const w = dayList.length > 1 && sel >= today ? dayClash(dayList) : ''; return w ? `<div class="pnote biz"><b>${w === 'overlap' ? 'Heads up — events overlap this day' : 'Heads up — back-to-back events this day'}</b><div>You may need to line up extra help.</div></div>` : ''; })()}
+      ${dayList.length ? dayList.map(eventCard).join('') : `<div class="card empty" style="padding:1rem"><span class="hand">${(pByDay[sel] || []).length ? 'no events booked' : 'wide open'}</span>Nothing for the business on this day.</div>`}
+      <a class="btn ghost sm" href="#/new?date=${sel}">+ Add an event on this day</a>` : ''}
+  `;
+}
+
 function viewEvents(q){
+  if(eventsViewPref(q) === 'cal' && !q.client && !q.status && !q.s) return viewCalendar(q);
   const status = q.status || 'all'; const client = q.client || ''; const search = (q.s || '').toLowerCase();
   let list = S.events.slice();
   if(status === 'all') list = list.filter(isActive); else list = list.filter(e => e.status === status);
@@ -517,8 +679,8 @@ function viewEvents(q){
   const chip = (k,l) => `<button class="chip ${status===k?'on':''}" data-action="filter" data-status="${k}">${l}</button>`;
   return `
     <span class="eyebrow">Events</span>
-    <h1>${client ? esc(client) : 'Every event'}</h1>
-    ${client ? `<a class="btn soft sm" href="#/events">← all clients</a>` : ''}
+    <div class="between"><h1 style="margin:0">${client ? esc(client) : 'Every event'}</h1>${client ? '' : viewSwitch('list')}</div>
+    ${client ? `<a class="btn soft sm" href="#/events?view=list">← all events</a>` : ''}
     <input id="search" placeholder="Search names, themes, places…" value="${esc(q.s||'')}" style="margin-top:.7rem"/>
     <div class="chips">${chip('all','Active')}${chip('inquiry','Inquiries')}${chip('quoted','Quoted')}${chip('booked','Booked')}${chip('done','Done')}${chip('lost','Lost')}</div>
     ${list.length ? list.map(eventCard).join('') : `<div class="card empty"><span class="hand">nothing here yet</span>Tap + to add an event or request.</div>`}
@@ -552,9 +714,17 @@ async function viewEvent(id){
       <div class="between"><h3>${esc(e.experience||'Experience TBD')}${e.experience_detail?` <span class="muted" style="font-weight:500">· ${esc(e.experience_detail)}</span>`:''}</h3>${e.guest_count?`<span class="pill quoted">${esc(e.guest_count)} guests</span>`:''}</div>
       <div class="small"><b>${fmtDateLong(e.event_date)}</b>${e.event_time?' · '+fmtTime(e.event_time)+(e.event_end?' – '+fmtTime(e.event_end):''):''} <span class="countdown">${countdown(e.event_date)}</span></div>
       ${e.location?`<div class="small muted">${esc(e.location)}</div>`:''}
+      ${e.event_date && isActive(e) && e.status !== 'done' ? clashNoteHTML(e.event_date, e.event_time, e.event_end, e.id, true) : ''}
+      ${e.event_date && e.status !== 'done' ? `<div id="personalNote"data-date="${esc(e.event_date)}" data-time="${esc(e.event_time||'')}" data-end="${esc(e.event_end||'')}"></div>` : ''}
       ${e.theme?`<div class="small" style="margin-top:.4rem"><span class="hand" style="font-size:1.1rem">theme:</span> ${esc(e.theme)}</div>`:''}
       <div class="row wrap" style="margin-top:.7rem">
-        ${e.event_date?`<button class="btn soft sm" data-action="ics">Add to calendar</button>`:''}
+        ${e.event_date ? (() => { const L = calLinks(e); return `<details class="calmenu"><summary class="btn soft sm">Add to calendar</summary>
+          <div class="menu">
+            <a href="${esc(L.google)}" target="_blank" rel="noopener" data-action="cal-link"><b>Google Calendar</b><span>Android phones, Gmail, web</span></a>
+            <button type="button" data-action="ics"><b>Apple Calendar</b><span>iPhone, iPad, Mac</span></button>
+            <a href="${esc(L.outlook)}" target="_blank" rel="noopener" data-action="cal-link"><b>Outlook</b><span>Outlook.com, Hotmail</span></a>
+            <button type="button" data-action="ics"><b>Another calendar app</b><span>Samsung, etc. — downloads a calendar file</span></button>
+          </div></details>`; })() : ''}
         ${contactLink?`<span class="small">${contactLink}</span>`:''}
         ${e.source?`<span class="tiny muted">via ${esc(e.source)}</span>`:''}
       </div>
@@ -661,7 +831,7 @@ async function viewEvent(id){
 
 /* ---------- NEW / EDIT FORM ---------- */
 function viewForm(e, q){
-  const s = S.settings; const isNew = !e; e = e || { status: q.status || 'inquiry', source: 'Website form' };
+  const s = S.settings; const isNew = !e; e = e || { status: q.status || 'inquiry', source: 'Website form', event_date: /^\d{4}-\d{2}-\d{2}$/.test(q.date || '') ? q.date : '' };
   const opt = (list, v) => list.map(x => `<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
   const expNames = s.experiences.map(x => x.name);
   return `
@@ -688,10 +858,12 @@ function viewForm(e, q){
         </div>
         <label>Experience details</label><input name="experience_detail" value="${esc(e.experience_detail||'')}" placeholder="Playdough, cloud slime, keychain add-on…"/>
         <label>Date</label><input name="event_date" type="date" value="${esc(e.event_date||'')}"/>
+        <div id="dateNote"></div>
         <div class="grid2">
           <div><label>Start time</label><input name="event_time" type="time" value="${esc(e.event_time||'')}"/></div>
           <div><label>End time</label><input name="event_end" type="time" value="${esc(e.event_end||'')}"/></div>
         </div>
+        <div id="clashNote"></div>
         <label>Location</label><input name="location" value="${esc(e.location||'')}" placeholder="Backyard, park shelter, studio…"/>
         <label>Theme / vibe</label><input name="theme" value="${esc(e.theme||'')}" placeholder="Mermaid, galentines, dino dig…"/>
       </div>
@@ -965,6 +1137,25 @@ function viewSettings(){
       </div>
       <button class="btn primary block" type="submit">Save settings</button>
     </form>
+    <form id="pcalForm" class="card mt">
+      <div class="between"><h3>Personal calendar</h3>${s.personalCalUrl ? '<span class="pill booked">linked</span>' : ''}</div>
+      <p class="tiny muted" style="margin:.1rem 0 .4rem">Shades the days you already have personal plans, and warns you before you book over them. The Studio only <b>reads</b> it — nothing is ever added to or changed in your personal calendar.</p>
+      <label>Your Google Calendar private link</label>
+      <input name="personalCalUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" value="${esc(s.personalCalUrl || '')}"/>
+      <details class="addbox" style="margin-top:.5rem"><summary class="tiny" style="color:var(--terra);font-weight:800;cursor:pointer">Where do I find that link?</summary>
+        <ol class="small" style="padding-left:1.2rem;margin:.5rem 0 0">
+          <li>On a <b>computer</b>, open Google Calendar (the phone app doesn't show this).</li>
+          <li>Gear icon → <b>Settings</b>.</li>
+          <li>On the left under <b>Settings for my calendars</b>, click your calendar's name.</li>
+          <li>Scroll to <b>Integrate calendar</b>.</li>
+          <li>Copy <b>Secret address in iCal format</b> and paste it here.</li>
+        </ol>
+        <p class="tiny muted" style="margin:.4rem 0 0">Treat that link like a password — anyone who has it can read that calendar. It's stored under your login only. If it ever leaks, Google can reset it from that same screen.</p>
+      </details>
+      <label class="check" style="border:none;padding:.7rem 0 0"><input type="checkbox" name="personalCalTitles" ${s.personalCalTitles === false ? '' : 'checked'}/><span>Show what each commitment is <span class="tiny muted">(off = just show "Busy")</span></span></label>
+      <div class="row mt wrap"><button class="btn sand sm" type="submit">Save &amp; test</button>${s.personalCalUrl ? '<button type="button" class="btn danger sm" data-action="pcal-unlink">Unlink</button>' : ''}</div>
+      <p class="small" id="pcalStatus" style="margin:.6rem 0 0;min-height:1.2em"></p>
+    </form>
     <div class="card mt">
       <h3>${S.mode==='demo'?'Demo mode':'Signed in'}</h3>
       ${S.mode==='demo'
@@ -985,6 +1176,8 @@ function bind(r){
     const a = el.dataset.action;
     if(a === 'new') return go('#/new');
     if(a === 'new-hunt') return go('#/hunt-new');
+    if(a === 'personal-retry'){ clearPersonal(); return render(); }
+    if(a === 'pcal-unlink'){ if(!confirm('Unlink your personal calendar from the Studio?')) return; const f = $('#pcalForm'); f.elements.personalCalUrl.value = ''; return f.requestSubmit(); }
     if(r.view === 'hunt'){
       const h = (S.hunts || []).find(x => x.id === r.id);
       if(h){
@@ -1027,7 +1220,8 @@ function bind(r){
       await S.db.addChecklist(items); toast(exp + ' list added'); return render();
     }
     if(a === 'delete'){ if(!confirm('Delete this event and its supplies/checklist?')) return; await S.db.deleteEvent(r.id); toast('Deleted'); return go('#/events'); }
-    if(a === 'ics'){ const e = S.events.find(x => x.id === r.id); return download(`salt-scissors-${(e.client_name||'event').replace(/\W+/g,'-').toLowerCase()}.ics`, makeICS(e), 'text/calendar'); }
+    if(a === 'cal-link'){ const m = el.closest('details'); if(m) m.removeAttribute('open'); return; } // let the link open; just tidy the menu
+    if(a === 'ics'){ const m = el.closest('details'); if(m) m.removeAttribute('open'); const e = S.events.find(x => x.id === r.id); return download(`salt-scissors-${(e.client_name||'event').replace(/\W+/g,'-').toLowerCase()}.ics`, makeICS(e), 'text/calendar;charset=utf-8'); }
     if(a === 'export'){ return exportCSV(); }
     if(a === 'reset-demo'){ if(!confirm('Replace everything with the sample data?')) return; await S.db.resetDemo(); toast('Sample data loaded'); return render(); }
     if(a === 'clear-all'){ if(!confirm('Delete ALL events and start empty?')) return; await S.db.clearAll(); toast('Fresh start'); return render(); }
@@ -1040,6 +1234,29 @@ function bind(r){
     if(el.dataset.action === 'check'){ await S.db.toggleChecklist(el.dataset.id, el.checked); el.closest('.check').classList.toggle('done', el.checked); const all = $$('.check input'); const d = all.filter(i => i.checked).length; const bar = $('.progress i'); if(bar) bar.style.width = Math.round(d/all.length*100) + '%'; const cnt = $('.card .between .tiny.muted'); return; }
   };
 
+  // event page: personal-calendar heads-up (fills in place once the calendar has been read)
+  { const pn = $('#personalNote'); if(pn) paintPersonalNote(pn, pn.dataset.date, pn.dataset.time, pn.dataset.end); }
+
+  // settings: link / unlink the personal calendar
+  const pf = $('#pcalForm');
+  if(pf){
+    const status = $('#pcalStatus');
+    const saveCal = async (url) => { const s = JSON.parse(JSON.stringify(S.settings)); s.personalCalUrl = url; s.personalCalTitles = pf.elements.personalCalTitles.checked; await S.db.saveSettings(s); S.settings = s; clearPersonal(); };
+    pf.onsubmit = async e => {
+      e.preventDefault(); const url = pf.elements.personalCalUrl.value.trim(); const btn = pf.querySelector('button[type=submit]');
+      if(url && !/^(https|webcal):\/\//i.test(url)){ status.innerHTML = '<span class="neg">That doesn\'t look like a calendar link — it should start with https://</span>'; return; }
+      btn.disabled = true; btn.textContent = 'Checking…'; status.textContent = '';
+      try {
+        await saveCal(url);
+        if(!url){ status.textContent = 'Saved — no calendar linked.'; }
+        else { const a = todayISO(), d = new Date(); d.setDate(d.getDate() + 60); const b = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          const ev = await S.db.personalEvents(a, b); const days = new Set(ev.map(x => x.date)).size;
+          status.innerHTML = `<span class="pos"><b>Linked.</b> Found ${ev.length} personal item${ev.length === 1 ? '' : 's'} on ${days} day${days === 1 ? '' : 's'} in the next 60 days.</span>`; }
+      } catch(err){ status.innerHTML = `<span class="neg">Saved the link, but couldn't read the calendar: ${esc(err.message || err)}</span>`; }
+      btn.disabled = false; btn.textContent = 'Save & test';
+    };
+  }
+
   // events search (debounced)
   const search = $('#search'); if(search){ let t; search.oninput = () => { clearTimeout(t); t = setTimeout(() => { const p = new URLSearchParams(route().q); if(search.value) p.set('s', search.value); else p.delete('s'); history.replaceState(null,'','#/events?' + p.toString()); const list = viewEvents(Object.fromEntries(p)); $('main').innerHTML = list; bind(route()); const s2 = $('#search'); s2.focus(); s2.setSelectionRange(s2.value.length, s2.value.length); }, 250); }; }
 
@@ -1051,6 +1268,12 @@ function bind(r){
       toast('Restored what you were typing');
       $('main h1').insertAdjacentHTML('afterend', `<button type="button" class="btn soft sm" data-action="discard-draft" data-key="${dkey}" style="margin-bottom:.6rem">Discard unsaved changes</button>`);
     }
+    { const qd = route().q.date; if(qd && !ef.elements.id.value && /^\d{4}-\d{2}-\d{2}$/.test(qd)) ef.elements.event_date.value = qd; } // date tapped on the calendar wins over an old draft
+    // personal-calendar heads-up: updates in place as she picks a date/time (never re-renders the form)
+    const notePersonal = () => { const d = ef.elements.event_date.value, t = ef.elements.event_time.value, en = ef.elements.event_end.value;
+      paintPersonalNote($('#dateNote'), d, t, en);
+      $('#clashNote').innerHTML = clashNoteHTML(d, t, en, ef.elements.id.value, false); }; // double-booking heads-up, same in-place rule
+    ['event_date','event_time','event_end'].forEach(n => ef.elements[n].addEventListener('change', notePersonal)); notePersonal();
     // ---- per-event price builder (line items) ----
     const linesEl = $('#lines'), fLines = $('#fLines'), totalEl = $('#linesTotal');
     let lines = []; try { lines = JSON.parse(fLines.value || '[]') || []; } catch(e){ lines = []; }
@@ -1200,19 +1423,49 @@ function bind(r){
 }
 
 /* ---------- calendar + export ---------- */
+/* "Add to calendar" — one event, every calendar. Times are Wilmington (Eastern) wall-clock. */
+const CAL_TZ = 'America/New_York';
+function eventEndTime(e){ // her end time, or start + 2h
+  if(e.event_end && e.event_end > e.event_time) return e.event_end;
+  const [h, m] = e.event_time.split(':').map(Number); return String(Math.min(23, h + 2)).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+function tzOffset(dateISO, time){ // "-04:00" in summer, "-05:00" in winter
+  try { const s = new Intl.DateTimeFormat('en-US', { timeZone: CAL_TZ, timeZoneName: 'longOffset' }).formatToParts(new Date(dateISO + 'T' + (time || '12:00') + ':00Z')).find(p => p.type === 'timeZoneName').value; const m = s.match(/GMT([+-]\d{2}:\d{2})/); return m ? m[1] : '-05:00'; } catch(err){ return '-05:00'; }
+}
+function calInfo(e){
+  return { title: 'Salt & Scissors: ' + e.client_name + (e.experience ? ' — ' + e.experience + (e.experience_detail ? ' (' + e.experience_detail + ')' : '') : ''),
+    details: [e.occasion, e.honoree, e.guest_count ? e.guest_count + ' guests' : '', e.theme ? 'Theme: ' + e.theme : '', e.client_contact ? 'Contact: ' + e.client_contact : '', e.notes].filter(Boolean).join('\n'),
+    location: e.location || '' };
+}
+function calLinks(e){
+  const i = calInfo(e), enc = encodeURIComponent, d = e.event_date.replace(/-/g, '');
+  const nextDay = (() => { const x = parseDate(e.event_date); x.setDate(x.getDate() + 1); return x.getFullYear() + String(x.getMonth() + 1).padStart(2, '0') + String(x.getDate()).padStart(2, '0'); })();
+  let gDates, oStart, oEnd;
+  if(e.event_time){
+    const end = eventEndTime(e), off = tzOffset(e.event_date, e.event_time);
+    gDates = `${d}T${e.event_time.replace(':', '')}00/${d}T${end.replace(':', '')}00`;
+    oStart = `${e.event_date}T${e.event_time}:00${off}`; oEnd = `${e.event_date}T${end}:00${off}`;
+  } else { gDates = `${d}/${nextDay}`; oStart = e.event_date; oEnd = e.event_date; }
+  return {
+    google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${enc(i.title)}&dates=${gDates}&ctz=${enc(CAL_TZ)}&details=${enc(i.details)}&location=${enc(i.location)}`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?path=%2Fcalendar%2Faction%2Fcompose&rru=addevent&subject=${enc(i.title)}&startdt=${enc(oStart)}&enddt=${enc(oEnd)}&allday=${e.event_time ? 'false' : 'true'}&body=${enc(i.details)}&location=${enc(i.location)}`,
+  };
+}
 function makeICS(e){
   const dt = e.event_date.replace(/-/g,'');
   const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
   let start, end;
   if(e.event_time){
-    const t = e.event_time.replace(':',''); start = `DTSTART;TZID=America/New_York:${dt}T${t}00`;
-    let endT = e.event_end;
-    if(!endT){ const [h,m] = e.event_time.split(':').map(Number); endT = String(Math.min(23,h+2)).padStart(2,'0') + ':' + String(m).padStart(2,'0'); }
-    end = `DTEND;TZID=America/New_York:${dt}T${endT.replace(':','')}00`;
+    start = `DTSTART;TZID=${CAL_TZ}:${dt}T${e.event_time.replace(':','')}00`;
+    end = `DTEND;TZID=${CAL_TZ}:${dt}T${eventEndTime(e).replace(':','')}00`;
+  } else { // all-day: the end date is exclusive, so it's the NEXT day
+    const x = parseDate(e.event_date); x.setDate(x.getDate() + 1);
+    start = `DTSTART;VALUE=DATE:${dt}`; end = `DTEND;VALUE=DATE:${x.getFullYear()}${String(x.getMonth()+1).padStart(2,'0')}${String(x.getDate()).padStart(2,'0')}`;
   }
-  else { start = `DTSTART;VALUE=DATE:${dt}`; end = `DTEND;VALUE=DATE:${dt}`; }
   const escI = s => String(s||'').replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n');
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Salt & Scissors Studio//EN','BEGIN:VEVENT',`UID:${e.id}@saltandscissors.co`,`DTSTAMP:${stamp}`,start,end,`SUMMARY:${escI('Salt & Scissors: ' + e.client_name + (e.experience?' — '+e.experience:''))}`,`LOCATION:${escI(e.location)}`,`DESCRIPTION:${escI([e.occasion, e.honoree, e.guest_count?e.guest_count+' guests':'', e.theme?'Theme: '+e.theme:'', e.notes].filter(Boolean).join('\n'))}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const i = calInfo(e);
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Salt & Scissors Studio//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',`UID:${e.id}@saltandscissors.co`,`DTSTAMP:${stamp}`,start,end,`SUMMARY:${escI(i.title)}`,`LOCATION:${escI(i.location)}`,`DESCRIPTION:${escI(i.details)}`,
+    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Salt & Scissors event tomorrow','TRIGGER:-P1D','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
 }
 
 async function exportCSV(){

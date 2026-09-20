@@ -136,6 +136,52 @@ textarea{min-height:84px;resize:vertical}
 .ritem .grow{color:var(--ink)}
 .radd{display:grid;grid-template-columns:1fr 58px 84px auto;gap:.35rem;margin-top:.35rem}
 .inline-form.qty{grid-template-columns:1fr 66px 92px auto}
+/* events: list | calendar switch + month grid */
+.seg{display:inline-flex;background:var(--paper-2);border-radius:999px;padding:3px;flex:none}
+.seg a{padding:.32rem .85rem;border-radius:999px;font-size:.76rem;font-weight:800;color:var(--ink-soft);text-decoration:none}
+.seg a.on{background:#fff;color:var(--slate);box-shadow:0 2px 6px -2px rgba(83,102,101,.4)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:.2rem 0}
+.cal-day{min-height:74px;background:#fff;border:1px solid rgba(83,102,101,.08);border-radius:10px;padding:4px 4px 5px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.cal-day.blank{background:transparent;border:none}
+.cal-day.past{background:#fdfbf8}
+.cal-day.past .n{color:#a9b1af}
+.cal-day .n{font-size:.78rem;font-weight:800;color:var(--slate);line-height:1.3;width:1.6em;text-align:center;border-radius:50%}
+.cal-day.today .n{background:var(--terra);color:#fff}
+.cal-day.sel{border:2px solid var(--slate);padding:3px 3px 4px}
+.cal-ev{display:block;border-radius:4px;font-size:.62rem;font-weight:700;line-height:1.35;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.inquiry,.dot.inquiry{background:#EADFF0;color:#5d3f63}
+.cal-ev.quoted,.dot.quoted{background:#F6E6C8;color:#6b4a1c}
+.cal-ev.booked,.dot.booked{background:#BFD8CB;color:#2f4f43}
+.cal-ev.done,.dot.done{background:#536665;color:#fff}
+.cal-more{font-size:.6rem;font-weight:800;color:var(--ink-soft);padding-left:3px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:2px}
+@media(max-width:560px){ /* phones: events become colored bars, tap the day to read them */
+  .cal{gap:3px}
+  .cal-day{min-height:54px}
+  .cal-ev{font-size:0;height:5px;padding:0;border-radius:3px}
+}
+/* personal calendar — soft red */
+.cal-day.personal{background:#FCEBE8;border-color:#F2CFC8}
+.cal-day.personal.past{background:#FDF3F1}
+.dot.personal{background:#F2B8AE}
+.pnote{background:#FCEBE8;border:1px solid #F2CFC8;border-radius:12px;padding:.6rem .8rem;margin:.5rem 0 .7rem;font-size:.86rem;color:#7d3526}
+.pnote b{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.15rem}
+/* double-booking heads-up — amber, so it never reads as "personal" */
+.pnote.biz{background:#FBF0DC;border-color:#EBD2A2;color:#6b4a1c}
+.pnote.biz a{color:inherit;font-weight:700}
+.pill.clash{background:#F6E0B4;color:#6b4a1c}
+.cal-day{position:relative}
+.cal-flag{position:absolute;top:4px;right:4px;width:15px;height:15px;border-radius:50%;background:#D9A441;color:#fff;font-size:.66rem;font-weight:800;line-height:15px;text-align:center}
+/* add-to-calendar chooser */
+.calmenu{position:relative;display:inline-block}
+.calmenu summary{list-style:none;cursor:pointer}
+.calmenu summary::-webkit-details-marker{display:none}
+.calmenu .menu{position:absolute;left:0;top:calc(100% + 6px);z-index:25;min-width:250px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 40px -18px rgba(83,102,101,.6);padding:.3rem;display:grid}
+.calmenu .menu a,.calmenu .menu button{display:block;text-align:left;background:none;border:none;font:inherit;color:inherit;text-decoration:none;padding:.55rem .7rem;border-radius:10px;cursor:pointer;width:100%}
+.calmenu .menu a:hover,.calmenu .menu button:hover{background:var(--paper-2)}
+.calmenu .menu b{display:block;font-size:.9rem;color:var(--slate)}
+.calmenu .menu span{display:block;font-size:.72rem;color:var(--ink-soft)}
 /* supply finder */
 .top .gear{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;color:#8d9997;margin-left:.2rem}
 .top .gear svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}

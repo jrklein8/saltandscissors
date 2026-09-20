@@ -10,7 +10,7 @@ one event. No inventory, no recipes, no abstractions.
 | Tab | What it does |
 |---|---|
 | **Home** | Today at a glance: inquiries needing a reply, quotes waiting, booked events ahead, balances due, this month's revenue, and what's up next |
-| **Events** | Every request/party with search and status filters (Inquiry → Quoted → Booked → Done, plus Lost) |
+| **Events** | Every request/party with search and status filters (Inquiry → Quoted → Booked → Done, plus Lost), as a list or a month calendar. Events that overlap or sit under an hour apart get an amber heads-up (form, event page, calendar, list) so she can line up extra help |
 | **Event page** | Tap-to-advance status, date/time/place with *Add to calendar*, tap-to-call/DM contact, money (quoted/agreed/deposit/paid toggles + balance due), supplies bought for that event with live profit, and a packing checklist auto-loaded from the experience type |
 | **Clients** | Built automatically from events — repeat clients float to the top with lifetime spend and honoree names |
 | **Money** | Month-by-month revenue / collected / supplies / profit, all-time totals, and a two-file CSV export for tax time |
@@ -57,6 +57,23 @@ site deploys the app too. No extra repo, subdomain, or DNS.
 but nothing renders and no data exists until someone signs in, the page carries `noindex`,
 and it isn't linked from the site. Before Supabase is connected, the public URL shows a
 polite "being set up" screen — demo mode only runs on localhost.
+
+## Personal calendar (optional) — shade personal days soft red
+Read-only. Shades days with personal commitments on the Events calendar and warns before
+booking over them. Works with a Google Calendar "secret address in iCal format" (iCloud and
+Outlook subscribe links are also accepted).
+
+Browsers can't fetch that link directly, so a small Supabase Edge Function relays it:
+
+1. Supabase dashboard -> **Edge Functions** -> **Deploy a new function** -> **Via Editor**
+2. Name it exactly `calendar-feed`, paste all of `edge-functions/calendar-feed.ts`, **Deploy**
+3. Open the function's settings and turn **off** "Verify JWT with legacy secret" (the code
+   checks the Studio login itself and only reads the signed-in user's own settings row)
+4. In the Studio: gear icon -> **Personal calendar** -> paste the link -> **Save & test**
+
+The function only fetches from Google/iCloud/Outlook calendar hosts, only for a signed-in
+user, only that user's saved link, and at most ~100 days at a time. Its calendar logic
+(repeats, skipped/rescheduled occurrences, time zones, DST) is covered by a Node test.
 
 ## Phone install
 Open the URL in Safari/Chrome → Share → **Add to Home Screen**. It opens full-screen
