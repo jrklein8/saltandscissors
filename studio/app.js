@@ -12,6 +12,7 @@ const SUPABASE_KEY = 'sb_publishable_vZC-aXl96Dq5lWQEGO-lkQ_udh8Yi2j';
 const DEFAULT_SETTINGS = {
   ownerName: 'Rebecca',
   extraGuestRate: 10,
+  targetMargin: 70,   // default target profit margin (%) for supply hunts
   experiences: [
     { name: 'Coastal Creamery',           price: 350, included: 15 },
     { name: 'Charm Bar',                  price: 325, included: 15 },
@@ -103,6 +104,62 @@ function eventCosts(expenses, receipts){
 const VENDORS = ['Amazon','Target','Walmart','Michaels','Hobby Lobby','Dollar Tree','Costco','Etsy'];
 /* "24 × $0.48 ea" for items with a quantity */
 const unitOf = x => (x.qty && num(x.qty) > 0) ? ` · ${num(x.qty)} × ${money2(num(x.cost) / num(x.qty))} ea` : '';
+/* ---------- supply hunts: where to look, the math, and the ranking ---------- */
+const STORES = [
+  { name:'Amazon',           host:/(^|\.)amazon\.|(^|\.)a\.co$|(^|\.)amzn\./, url:q => `https://www.amazon.com/s?k=${q}` },
+  { name:'Temu',             host:/(^|\.)temu\.com$/,            url:q => `https://www.temu.com/search_result.html?search_key=${q}`, overseas:true },
+  { name:'Alibaba',          host:/(^|\.)alibaba\.com$/,         url:q => `https://www.alibaba.com/trade/search?SearchText=${q}`, overseas:true },
+  { name:'AliExpress',       host:/(^|\.)aliexpress\./,          url:q => `https://www.aliexpress.com/wholesale?SearchText=${q}`, overseas:true },
+  { name:'Walmart',          host:/(^|\.)walmart\.com$/,         url:q => `https://www.walmart.com/search?q=${q}` },
+  { name:'Target',           host:/(^|\.)target\.com$/,          url:q => `https://www.target.com/s?searchTerm=${q}` },
+  { name:'Etsy',             host:/(^|\.)etsy\.com$/,            url:q => `https://www.etsy.com/search?q=${q}` },
+  { name:'Michaels',         host:/(^|\.)michaels\.com$/,        url:q => `https://www.michaels.com/search?q=${q}` },
+  { name:'Oriental Trading', host:/(^|\.)orientaltrading\.com$/, url:q => `https://www.orientaltrading.com/web/search/searchMain?keyword=${q}` },
+  { name:'Dollar Tree',      host:/(^|\.)dollartree\.com$/,      url:q => `https://www.dollartree.com/searchresults?Ntt=${q}` },
+  { name:'Google Shopping',  host:/^$/,                          url:q => `https://www.google.com/search?tbm=shop&q=${q}` },
+];
+const storeFromUrl = u => { try { const h = new URL(u).hostname.toLowerCase(); const s = STORES.find(s => s.host.test(h)); return s ? s.name : h.replace(/^www\./,''); } catch(e){ return ''; } };
+const isOverseas = name => !!(STORES.find(s => s.name === name) || {}).overseas;
+
+function huntMath(h){
+  const guests = num(h.guests), per = num(h.units_per_guest) || 1;
+  const need = guests ? Math.ceil(guests * per) : 0;
+  const charge = num(h.charge_per_guest);
+  const margin = (h.target_margin === '' || h.target_margin == null) ? null : num(h.target_margin);
+  const guestBudget = (charge && margin != null) ? charge * (1 - margin / 100) : null; // for ALL supplies, per guest
+  return { guests, per, need, charge, margin, guestBudget, maxUnit: num(h.max_unit_cost) || null };
+}
+function optMath(o, h){
+  const m = huntMath(h);
+  const price = num(o.pack_price), qty = num(o.pack_qty) || 1, ship = num(o.shipping);
+  const packs = m.need ? Math.max(1, Math.ceil(m.need / qty)) : 1;
+  const total = packs * price + ship, units = packs * qty;
+  const landed = total / units;                       // true cost each, shipping included
+  const late = (h.need_by && o.arrives_by) ? o.arrives_by > h.need_by : null;
+  const spare = (h.need_by && o.arrives_by) ? Math.round((parseDate(h.need_by) - parseDate(o.arrives_by)) / 86400000) : null;
+  const reviews = num(o.reviews);
+  const adj = o.rating ? (reviews ? (num(o.rating) * reviews + 4.0 * 50) / (reviews + 50) : num(o.rating)) : null; // few reviews count for less
+  return { priced: price > 0, packs, total, units, sticker: price / qty, landed, perGuest: landed * m.per,
+           leftover: m.need ? units - m.need : 0, late, spare, over: m.maxUnit ? landed > m.maxUnit + 1e-9 : false, adj };
+}
+function rankOptions(h){
+  const rows = (h.options || []).map(o => ({ o, m: optMath(o, h), badges: [] }));
+  const priced = rows.filter(x => x.m.priced);
+  const cheapestOf = arr => arr.slice().sort((a,b) => a.m.landed - b.m.landed)[0] || null;
+  const onTime = x => x.m.late !== true, good = x => !x.o.rating || num(x.o.rating) >= 4;
+  // best = cheapest that arrives in time, fits the budget and has 4+ stars; relax if nothing qualifies
+  const best = cheapestOf(priced.filter(x => onTime(x) && !x.m.over && good(x))) || cheapestOf(priced.filter(onTime)) || cheapestOf(priced);
+  const cur = rows.find(x => x.o.is_current && x.m.priced) || null;
+  if(best) best.badges.push('best');
+  if(priced.length > 1){
+    const c = cheapestOf(priced); if(c) c.badges.push('cheapest');
+    // a badge only means something when there's real competition for it
+    const rated = priced.filter(x => x.m.adj != null).sort((a,b) => b.m.adj - a.m.adj); if(rated.length > 1) rated[0].badges.push('top rated');
+    const dated = priced.filter(x => x.o.arrives_by).sort((a,b) => a.o.arrives_by.localeCompare(b.o.arrives_by)); if(dated.length > 1) dated[0].badges.push('fastest');
+  }
+  rows.sort((a,b) => (b === best) - (a === best) || (a.m.late === true) - (b.m.late === true) || (b.m.priced - a.m.priced) || (a.m.landed - b.m.landed));
+  return { rows, best, cur };
+}
 let toastT; const toast = msg => { let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); };
 
 /* ============================================================
@@ -138,6 +195,14 @@ function seedDemo(){
       { id:uid(), event_id:e1, item:'Sundae cups + lids (25)', cost:19.80, store:'Amazon', created_at:now },
       { id:uid(), event_id:e1, item:'Mermaid charms + pearls', cost:14.25, store:'Hobby Lobby', created_at:now },
     ],
+    hunts: [
+      { id:uid(), event_id:e1, name:'Mermaid charms', query:'mermaid charms bulk', guests:18, units_per_guest:3, charge_per_guest:22, target_margin:70, max_unit_cost:0.40, need_by: iso(d.getDate()+3), notes:'Mix of tails, shells and starfish.', status:'open', chosen_id:null, created_at:now, updated_at:now,
+        options:[
+          { id:uid(), title:'Ocean charm mix, 60 pc', store:'Amazon', url:'https://www.amazon.com/s?k=mermaid+charms+bulk', pack_price:13.99, pack_qty:60, shipping:0, arrives_by: iso(d.getDate()+2), rating:4.6, reviews:1204, is_current:true, notes:'What I bought last time.' },
+          { id:uid(), title:'Sea life charms, 100 pc', store:'Temu', url:'https://www.temu.com/search_result.html?search_key=mermaid+charms', pack_price:8.49, pack_qty:100, shipping:2.99, arrives_by: iso(d.getDate()+11), rating:4.3, reviews:312, is_current:false, notes:'' },
+          { id:uid(), title:'Enamel mermaid charm set, 50 pc', store:'Etsy', url:'https://www.etsy.com/search?q=mermaid+charms', pack_price:24.00, pack_qty:50, shipping:4.50, arrives_by: iso(d.getDate()+3), rating:4.9, reviews:88, is_current:false, notes:'Prettiest, priciest.' },
+        ] },
+    ],
     checklist: [
       ...DEFAULT_SETTINGS.packing['Coastal Creamery'].map((label,i)=>({ id:uid(), event_id:e1, label, done:i<4, sort:i })),
       ...DEFAULT_SETTINGS.packing['_always'].map((label,i)=>({ id:uid(), event_id:e1, label, done:false, sort:100+i })),
@@ -166,6 +231,9 @@ class LocalDB {
   async addChecklist(items){ items.forEach(it => { it.id = uid(); this.d.checklist.push(it); }); this.save(); return items; }
   async toggleChecklist(id, done){ const it = this.d.checklist.find(x => x.id === id); if(it) it.done = done; this.save(); }
   async deleteChecklist(id){ this.d.checklist = this.d.checklist.filter(x => x.id !== id); this.save(); }
+  async listHunts(){ return (this.d.hunts||[]).map(h => JSON.parse(JSON.stringify(h))); }
+  async saveHunt(h){ this.d.hunts = this.d.hunts || []; const now = new Date().toISOString(); h.updated_at = now; const i = this.d.hunts.findIndex(x => x.id === h.id); if(i < 0){ h.id = h.id || uid(); h.created_at = now; this.d.hunts.push(h); } else this.d.hunts[i] = h; this.save(); return JSON.parse(JSON.stringify(h)); }
+  async deleteHunt(id){ this.d.hunts = (this.d.hunts||[]).filter(h => h.id !== id); this.save(); }
   async getSettings(){ return { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...this.d.settings }; }
   async saveSettings(s){ this.d.settings = s; this.save(); }
   async resetDemo(){ this.d = seedDemo(); this.save(); }
@@ -215,6 +283,9 @@ class SupaDB {
   async addChecklist(items){ const { data, error } = await this.sb.from('checklist').insert(items).select(); if(error) throw error; return data; }
   async toggleChecklist(id, done){ const { error } = await this.sb.from('checklist').update({ done }).eq('id', id); if(error) throw error; }
   async deleteChecklist(id){ const { error } = await this.sb.from('checklist').delete().eq('id', id); if(error) throw error; }
+  async listHunts(){ const { data, error } = await this.sb.from('hunts').select('*').order('created_at', {ascending:false}); if(error) throw error; return data; }
+  async saveHunt(h){ const row = {...h}; if(!row.id) delete row.id; delete row.created_at; delete row.user_id; row.updated_at = new Date().toISOString(); const { data, error } = await this.sb.from('hunts').upsert(row).select().single(); if(error) throw error; return data; }
+  async deleteHunt(id){ const { error } = await this.sb.from('hunts').delete().eq('id', id); if(error) throw error; }
   async getSettings(){ const { data } = await this.sb.from('settings').select('data').maybeSingle(); return { ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...((data && data.data) || {}) }; }
   async saveSettings(s){ const { data:{ user } } = await this.sb.auth.getUser(); const { error } = await this.sb.from('settings').upsert({ user_id: user.id, data: s, updated_at: new Date().toISOString() }); if(error) throw error; }
 }
@@ -277,6 +348,9 @@ async function refresh(){
   S._costByEvent = {}; S._spendByEvent = {};
   new Set([...Object.keys(xs), ...Object.keys(rs)]).forEach(id => { const c = eventCosts(xs[id] || [], rs[id] || []); S._costByEvent[id] = c; S._spendByEvent[id] = c.trueCost; });
   S._allReceipts = recs;
+  S._allExpenses = all;
+  // supply hunts — guarded so the rest of the app still works if the table isn't there yet
+  try { S.hunts = await S.db.listHunts(); S._huntsMissing = false; } catch(e){ S.hunts = []; S._huntsMissing = true; }
 }
 
 /* ============================================================
@@ -298,11 +372,19 @@ async function render(){
     else if(r.view === 'clients') body = viewClients();
     else if(r.view === 'money') body = viewMoney(r.q);
     else if(r.view === 'settings') body = viewSettings();
+    else if(r.view === 'supplies') body = viewHunts();
+    else if(r.view === 'hunt' && r.id) body = viewHunt(r.id);
+    else if(r.view === 'hunt-new') body = viewHuntForm(null, r.q);
+    else if(r.view === 'hunt-edit' && r.id) body = viewHuntForm((S.hunts||[]).find(h => h.id === r.id), r.q);
     else body = viewHome();
   } catch(err){ body = `<div class="empty"><span class="hand">something hiccuped</span>${esc(err.message||err)}</div>`; }
-  app.innerHTML = shell(body, r.view);
+  if(r.view !== 'hunt') S._editOpt = null;
+  // same screen re-rendering (added an item, saved an edit) keeps your place; a new screen starts at the top
+  const keepY = S._lastHash === location.hash ? window.scrollY : 0;
+  S._lastHash = location.hash;
+  app.innerHTML = shell(body, ['hunt','hunt-new','hunt-edit'].includes(r.view) ? 'supplies' : r.view);
   bind(r);
-  window.scrollTo(0,0);
+  window.scrollTo(0, keepY);
 }
 
 function shell(body, view){
@@ -311,6 +393,7 @@ function shell(body, view){
     home:'<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>',
     cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     ppl:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 4.5"/></svg>',
+    bag:'<svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
     usd:'<svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M16.5 7.5c0-1.7-2-3-4.5-3S7.5 5.8 7.5 7.5 9.5 10 12 10s4.5 1.3 4.5 3-2 3.5-4.5 3.5-4.5-1.3-4.5-3"/></svg>',
     gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   };
@@ -320,15 +403,17 @@ function shell(body, view){
       <span class="tag">studio</span>
       <span class="spacer"></span>
       ${S.mode==='demo' ? '<span class="pill inquiry">Demo</span>' : ''}
+      <a class="gear ${view==='settings'?'active':''}" href="#/settings" aria-label="Settings">${ic.gear}</a>
     </header>
     <main>${body}</main>
-    ${['home','events','clients','money'].includes(view) ? '<button class="fab" data-action="new" aria-label="New event">+</button>' : ''}
+    ${['home','events','clients','money'].includes(route().view) ? '<button class="fab" data-action="new" aria-label="New event">+</button>' : ''}
+    ${route().view === 'supplies' && !S._huntsMissing ? '<button class="fab" data-action="new-hunt" aria-label="New supply hunt">+</button>' : ''}
     <nav class="tabs">
       ${tab('home','#/',ic.home,'Home')}
       ${tab('events','#/events',ic.cal,'Events')}
-      ${tab('clients','#/clients',ic.ppl,'Clients')}
+      ${tab('supplies','#/supplies',ic.bag,'Supplies')}
       ${tab('money','#/money',ic.usd,'Money')}
-      ${tab('settings','#/settings',ic.gear,'Settings')}
+      ${tab('clients','#/clients',ic.ppl,'Clients')}
     </nav>`;
 }
 
@@ -554,6 +639,9 @@ async function viewEvent(id){
       ${loose.length ? `<ul class="list">${loose.map(x=> S._editItem === x.id ? `<li>${itemEditForm(x)}</li>` : `<li><div class="grow"><div>${esc(x.item)}<span class="tiny muted">${unitOf(x)}</span></div><div class="tiny muted">${x.store?esc(x.store)+' · ':''}${receipts.length?`<select class="rsel" data-action="link-receipt" data-id="${x.id}"><option value="">no receipt</option>${receipts.map(r=>`<option value="${r.id}">${esc(rlabel(r))}</option>`).join('')}</select>`:'no receipt'}</div></div><b>${money2(x.cost)}</b><button class="iconbtn txt" data-action="edit-item" data-id="${x.id}">edit</button><button class="iconbtn" data-action="del-expense" data-id="${x.id}" aria-label="Remove">×</button></li>`).join('')}</ul>` : `<p class="small muted" style="margin:.4rem 0">Anything bought without a receipt goes here.</p>`}
       <form class="inline-form qty" id="expenseForm"><div><label>Item</label><input name="item" placeholder="Resin sea creatures" required/></div><div><label>Qty</label><input name="qty" type="number" step="any" min="0" inputmode="numeric" placeholder="#"/></div><div><label>Cost</label><input name="cost" type="number" step="0.01" min="0" placeholder="0.00" required/></div><button class="btn sand sm" type="submit">Add</button></form>
       <input name="store" id="expenseStore" placeholder="Where (optional)" style="margin-top:.5rem"/>`; })()}
+      ${S._huntsMissing ? '' : (() => { const mine = (S.hunts || []).filter(h => h.event_id === e.id); return `
+      <div class="between" style="margin-top:1.2rem;border-top:1px solid var(--line);padding-top:.8rem"><h3 style="margin:0">Still need to buy?</h3><a class="btn ghost sm" href="#/hunt-new?event=${e.id}">Find supplies</a></div>
+      ${mine.length ? `<ul class="list">${mine.map(h => { const c = (h.options || []).find(o => o.id === h.chosen_id); return `<li><a class="grow" href="#/hunt/${h.id}" style="text-decoration:none"><b>${esc(h.name)}</b><div class="tiny muted">${c ? 'chosen: ' + esc(c.store || c.title) + ' · ' + money2(optMath(c, h).landed) + ' each' : (h.options || []).length + ' option' + ((h.options || []).length === 1 ? '' : 's') + ' so far'}</div></a><span class="pill ${h.status === 'decided' ? 'booked' : 'quoted'}">${h.status === 'decided' ? 'decided' : 'looking'}</span></li>`; }).join('')}</ul>` : ''}`; })()}
     </div>
 
     <div class="card">
@@ -697,6 +785,164 @@ function viewMoney(q){
   `;
 }
 
+/* ---------- SUPPLIES (supply hunts) ---------- */
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
+const BADGE = { best:'best pick', cheapest:'cheapest', 'top rated':'top rated', fastest:'fastest' };
+
+function viewHunts(){
+  if(S._huntsMissing) return `<span class="eyebrow">Supplies</span><h1>Supply finder</h1>
+    <div class="card empty"><span class="hand">one quick setup step</span>The database needs the new <b>hunts</b> table. Run <b>migrate-2026-09-19-supply-hunts.sql</b> in Supabase, then refresh.</div>`;
+  const hunts = (S.hunts || []).slice().sort((a,b) => (a.status === 'decided') - (b.status === 'decided') || (a.need_by || '9999').localeCompare(b.need_by || '9999'));
+  return `
+    <span class="eyebrow">Supplies</span>
+    <h1>Supply finder</h1>
+    <p class="muted small">Say what you need and what you can spend. Search every store in one tap, drop the contenders in, and the math picks the winner — cost each, shipping, arrival date and quality all counted.</p>
+    ${hunts.length ? hunts.map(h => {
+      const { best } = rankOptions(h); const ev = h.event_id ? S.events.find(e => e.id === h.event_id) : null;
+      const chosen = (h.options || []).find(o => o.id === h.chosen_id); const pick = chosen ? { o: chosen, m: optMath(chosen, h) } : best;
+      return `<a class="card tap ev" href="#/hunt/${h.id}">
+        <div class="between"><span class="when">${h.need_by ? 'need by ' + fmtDate(h.need_by) : 'no deadline'}</span>${h.need_by ? `<span class="countdown">${countdown(h.need_by)}</span>` : ''}</div>
+        <div class="name">${esc(h.name)}</div>
+        <div class="meta">${ev ? 'for ' + esc(ev.client_name) + ' · ' : ''}${(h.options || []).length} option${(h.options || []).length === 1 ? '' : 's'}</div>
+        <div class="row wrap" style="margin-top:.45rem">${h.status === 'decided' ? '<span class="pill booked">decided</span>' : '<span class="pill quoted">looking</span>'}${pick ? `<span class="small"><b>${esc(pick.o.store || pick.o.title)}</b> · ${money2(pick.m.landed)} each</span>` : ''}</div>
+      </a>`; }).join('') : `<div class="card empty"><span class="hand">nothing on the list yet</span>Tap + to start a supply hunt.</div>`}
+  `;
+}
+
+function optForm(o, mode){
+  o = o || {};
+  return `<form id="${mode === 'edit' ? 'optEdit' : 'optForm'}" ${o.id ? `data-id="${o.id}"` : ''}>
+    <label>Link to the listing</label><input name="url" type="url" inputmode="url" placeholder="Paste the product link" value="${esc(o.url || '')}"/>
+    <div class="grid2">
+      <div><label>What is it *</label><input name="title" required placeholder="Sea creature mix, 24 pc" value="${esc(o.title || '')}"/></div>
+      <div><label>Store</label><input name="store" list="storeList" placeholder="Amazon" value="${esc(o.store || '')}"/></div>
+    </div>
+    <div class="grid3">
+      <div><label>Price *</label><input name="pack_price" type="number" step="0.01" min="0" required placeholder="11.62" value="${o.pack_price ?? ''}"/></div>
+      <div><label>How many in it</label><input name="pack_qty" type="number" step="any" min="0" placeholder="24" value="${o.pack_qty ?? ''}"/></div>
+      <div><label>Shipping</label><input name="shipping" type="number" step="0.01" min="0" placeholder="0.00" value="${o.shipping || ''}"/></div>
+    </div>
+    <div class="grid3">
+      <div><label>Arrives by</label><input name="arrives_by" type="date" value="${esc(o.arrives_by || '')}"/></div>
+      <div><label>Stars</label><input name="rating" type="number" step="0.1" min="0" max="5" placeholder="4.6" value="${o.rating ?? ''}"/></div>
+      <div><label># reviews</label><input name="reviews" type="number" step="1" min="0" placeholder="1200" value="${o.reviews ?? ''}"/></div>
+    </div>
+    <label class="check" style="border:none;padding:.6rem 0 0"><input type="checkbox" name="is_current" ${o.is_current ? 'checked' : ''}/><span>This is what I buy now (compare the others against it)</span></label>
+    <label>Notes</label><input name="notes" placeholder="Colors, sizes, anything to remember" value="${esc(o.notes || '')}"/>
+    <div class="row mt"><button class="btn sand sm" type="submit">${mode === 'edit' ? 'Save changes' : 'Add option'}</button>${mode === 'edit' ? '<button type="button" class="btn soft sm" data-action="opt-cancel">Cancel</button>' : ''}</div>
+  </form>`;
+}
+
+function viewHunt(id){
+  const h = (S.hunts || []).find(x => x.id === id);
+  if(!h) return `<div class="empty"><span class="hand">can't find that one</span><a href="#/supplies">Back to supplies</a></div>`;
+  const m = huntMath(h); const { rows, best, cur } = rankOptions(h);
+  const ev = h.event_id ? S.events.find(e => e.id === h.event_id) : null;
+  const q = h.query || (h.name + ' bulk');
+  const past = (S._allExpenses || []).filter(x => num(x.qty) > 0 && num(x.cost) > 0);
+  const card = x => { const o = x.o, mm = x.m; const chosen = h.chosen_id === o.id; const link = safeUrl(o.url);
+    if(S._editOpt === o.id) return `<div class="opt editing">${optForm(o, 'edit')}</div>`;
+    let vs = '';
+    if(cur && x !== cur && mm.priced){ const d = cur.m.landed - mm.landed;
+      vs = Math.abs(d) < 0.005 ? 'same cost each as what you buy now' : d > 0 ? `<span class="pos">saves ${money2(d)} each vs what you buy now</span>` : `<span class="neg">${money2(-d)} more each than what you buy now</span>`;
+      if(m.need){ const dt = cur.m.total - mm.total; // per-unit and per-order can disagree when a big pack leaves leftovers — say both
+        if(Math.abs(dt) >= 0.005) vs += dt > 0 ? ` · <span class="pos">this order is ${money2(dt)} less</span>` : ` · <span class="neg">this order is ${money2(-dt)} more</span>${mm.leftover > cur.m.leftover ? ` <span class="muted">(only worth it if you'll use the ${mm.leftover} extra)</span>` : ''}`; } }
+    return `<div class="opt ${x === best ? 'best' : ''} ${chosen ? 'chosen' : ''} ${mm.late === true ? 'late' : ''}">
+      <div class="between" style="align-items:flex-start"><div><b>${esc(o.title)}</b>${o.store ? ` <span class="pill store">${esc(o.store)}</span>` : ''}</div>
+        ${mm.priced ? `<div class="right"><span class="money">${money2(mm.landed)}</span><div class="tiny muted">each${num(o.shipping) ? ', shipped' : ''}</div></div>` : ''}</div>
+      <div class="row wrap" style="gap:.3rem;margin:.3rem 0">${chosen ? '<span class="pill done">chosen</span>' : ''}${o.is_current ? '<span class="pill lost">what I buy now</span>' : ''}${x.badges.map(b => `<span class="pill ${b === 'best' ? 'booked' : 'quoted'}">${BADGE[b]}</span>`).join('')}${mm.over ? '<span class="pill due">over your max</span>' : ''}</div>
+      ${mm.priced ? `<div class="small">${money2(o.pack_price)} for ${num(o.pack_qty) || 1}${m.need ? ` · you need ${mm.packs} → <b>${money2(mm.total)}</b>${num(o.shipping) ? ' with shipping' : ''}${mm.leftover ? ` · ${mm.leftover} left over` : ''}` : ''}</div>` : '<div class="small muted">no price entered yet</div>'}
+      ${mm.priced && m.guests ? `<div class="small">Per guest: <b>${money2(mm.perGuest)}</b>${m.guestBudget ? ` <span class="muted">(${Math.round(mm.perGuest / m.guestBudget * 100)}% of your ${money2(m.guestBudget)} supply budget)</span>` : ''}</div>` : ''}
+      <div class="small">${o.arrives_by ? (mm.late === true ? `<span class="neg"><b>Arrives ${fmtDate(o.arrives_by)} — ${Math.abs(mm.spare)} day${Math.abs(mm.spare) === 1 ? '' : 's'} too late</b></span>` : `Arrives ${fmtDate(o.arrives_by)}${mm.spare != null ? ` <span class="pos">— ${mm.spare === 0 ? 'just in time' : mm.spare + ' day' + (mm.spare === 1 ? '' : 's') + ' to spare'}</span>` : ''}`) : `<span class="muted">arrival date not entered${isOverseas(o.store) ? ' — ships from overseas, check it carefully' : ''}</span>`}</div>
+      ${o.rating ? `<div class="small">${'★'.repeat(Math.round(num(o.rating)))}<span class="muted">${'★'.repeat(5 - Math.round(num(o.rating)))}</span> ${num(o.rating).toFixed(1)}${o.reviews ? ` <span class="muted">(${num(o.reviews).toLocaleString()} reviews)</span>` : ''}</div>` : ''}
+      ${vs ? `<div class="small">${vs}</div>` : ''}
+      ${o.notes ? `<div class="tiny muted">${esc(o.notes)}</div>` : ''}
+      <div class="row wrap" style="margin-top:.55rem">${link ? `<a class="btn soft sm" href="${esc(link)}" target="_blank" rel="noopener">Open listing</a>` : ''}${chosen ? `<button class="btn ghost sm" data-action="opt-unchoose">Un-choose</button>` : `<button class="btn sand sm" data-action="opt-choose" data-id="${o.id}">Choose this</button>`}<span class="spacer" style="flex:1"></span><button class="iconbtn txt" data-action="opt-edit" data-id="${o.id}">edit</button><button class="iconbtn" data-action="opt-del" data-id="${o.id}" aria-label="Remove option">×</button></div>
+    </div>`; };
+  return `
+    <a class="tiny muted" href="#/supplies">← supplies</a>
+    <div class="between" style="align-items:flex-start;margin-top:.3rem"><div><span class="eyebrow">Supply hunt${ev ? ' · ' + esc(ev.client_name) : ''}</span><h1>${esc(h.name)}</h1></div><a class="btn soft sm" href="#/hunt-edit/${h.id}">Edit</a></div>
+
+    <div class="card">
+      <div class="summary" style="margin:0">
+        <div class="srow"><span>You need</span><b>${m.need ? `${m.need} <span class="muted" style="font-weight:600">(${m.per} per guest × ${m.guests})</span>` : '<span class="muted">quantity not set</span>'}</b></div>
+        <div class="srow"><span>Need it by</span><b>${h.need_by ? `${fmtDate(h.need_by)} <span class="countdown">${countdown(h.need_by)}</span>` : '<span class="muted">no deadline</span>'}</b></div>
+        <div class="srow"><span>Most you'll pay each</span><b>${m.maxUnit ? money2(m.maxUnit) : '<span class="muted">not set</span>'}</b></div>
+        ${m.guestBudget != null ? `<div class="srow"><span>Supply budget per guest</span><b>${money2(m.guestBudget)} <span class="muted" style="font-weight:600">(charging ${money2(m.charge)}, ${m.margin}% margin)</span></b></div>` : ''}
+      </div>
+      ${ev ? `<a class="tiny" href="#/event/${ev.id}">Open ${esc(ev.client_name)}'s event →</a>` : ''}
+      ${h.notes ? `<div class="tiny muted" style="margin-top:.4rem">${esc(h.notes)}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <h3>Search the stores</h3>
+      <input id="huntQuery" value="${esc(q)}" placeholder="What to search for"/>
+      <div class="chips" style="margin:.6rem 0 .3rem">${STORES.map((s,i) => `<button type="button" class="chip" data-action="store-search" data-i="${i}">${esc(s.name)}</button>`).join('')}</div>
+      <p class="tiny muted" style="margin:0">Each opens that store's results in a new tab. Found a contender? Copy its link and add it below — the arrival date on the listing is the one to trust, since it's based on your address.</p>
+    </div>
+
+    <h2 class="sec">Options ${rows.length ? `<span class="muted small" style="font-weight:600">· ranked</span>` : ''}</h2>
+    ${rows.length ? rows.map(card).join('') : `<div class="card empty"><span class="hand">no contenders yet</span>Add what you buy now first — then everything else gets compared against it.</div>`}
+    ${rows.length > 1 && best ? `<p class="tiny muted">Best pick = the cheapest option (shipping included) that arrives in time${m.maxUnit ? ', fits your max' : ''} and has 4+ stars.</p>` : ''}
+
+    <div class="card">
+      <h3>Add an option</h3>
+      ${past.length ? `<div class="row" style="margin-bottom:.4rem"><select id="pastPick" style="flex:1"><option value="">From something I've bought before…</option>${past.map(x => `<option value="${x.id}">${esc(x.item)} · ${esc(x.store || 'store?')} · ${money2(num(x.cost) / num(x.qty))} each</option>`).join('')}</select><button type="button" class="btn soft sm" data-action="add-past">Add</button></div>` : ''}
+      ${optForm(null, 'add')}
+      <datalist id="storeList">${[...new Set([...STORES.map(s => s.name), ...VENDORS])].filter(n => n !== 'Google Shopping').map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    </div>
+    <div class="center mt"><button class="btn danger sm" data-action="hunt-delete">Delete this hunt</button></div>
+  `;
+}
+
+function viewHuntForm(h, q){
+  const isNew = !h; const s = S.settings;
+  if(isNew){
+    h = { target_margin: s.targetMargin ?? 70, units_per_guest: 1 };
+    const ev = q && q.event ? S.events.find(e => e.id === q.event) : null;
+    if(ev) Object.assign(h, huntFromEvent(ev));
+  }
+  const evs = S.events.filter(e => isActive(e) && e.status !== 'done').sort((a,b) => (a.event_date || '9999').localeCompare(b.event_date || '9999'));
+  return `
+    <a class="tiny muted" href="${isNew ? '#/supplies' : '#/hunt/' + h.id}">← back</a>
+    <span class="eyebrow">${isNew ? 'New supply hunt' : 'Edit hunt'}</span>
+    <h1>${isNew ? 'What are you shopping for?' : esc(h.name)}</h1>
+    <form id="huntForm">
+      <input type="hidden" name="id" value="${esc(h.id || '')}"/>
+      <div class="card">
+        <label>What do you need *</label><input name="hname" required placeholder="Resin sea creatures" value="${esc(h.name || '')}"/>
+        <label>Search words <span class="tiny muted" style="text-transform:none;letter-spacing:0">(optional — defaults to the name + "bulk")</span></label><input name="query" placeholder="resin sea animals mini bulk" value="${esc(h.query || '')}"/>
+        <label>For which event</label><select name="event_id" id="hEvent"><option value="">Not tied to one event</option>${evs.map(e => `<option value="${e.id}" ${h.event_id === e.id ? 'selected' : ''}>${esc(e.client_name)} · ${fmtDate(e.event_date)}</option>`).join('')}</select>
+      </div>
+      <div class="card">
+        <h3>How many, by when</h3>
+        <div class="grid3">
+          <div><label>Guests</label><input name="guests" id="hGuests" type="number" min="0" step="1" placeholder="20" value="${h.guests ?? ''}"/></div>
+          <div><label>Per guest</label><input name="units_per_guest" id="hPer" type="number" min="0" step="any" placeholder="1" value="${h.units_per_guest ?? ''}"/></div>
+          <div><label>Need it by</label><input name="need_by" id="hNeedBy" type="date" value="${esc(h.need_by || '')}"/></div>
+        </div>
+        <p class="hand" id="hNeed" style="margin:.5rem 0 0;font-size:1.15rem"></p>
+      </div>
+      <div class="card">
+        <h3>What you can spend</h3>
+        <div class="grid2">
+          <div><label>You charge per guest</label><input name="charge_per_guest" id="hCharge" type="number" min="0" step="0.01" placeholder="20.00" value="${h.charge_per_guest ?? ''}"/></div>
+          <div><label>Target profit margin %</label><input name="target_margin" id="hMargin" type="number" min="0" max="100" step="1" placeholder="70" value="${h.target_margin ?? ''}"/></div>
+        </div>
+        <p class="hand" id="hBudget" style="margin:.5rem 0 0;font-size:1.15rem"></p>
+        <label>Most you'll pay for ONE of these</label><input name="max_unit_cost" type="number" min="0" step="0.01" placeholder="0.50" value="${h.max_unit_cost ?? ''}"/>
+        <p class="tiny muted" style="margin:.3rem 0 0">The per-guest budget covers everything in the kit — this is the cap for just this item. Options over the cap get flagged.</p>
+      </div>
+      <div class="card"><label>Notes</label><textarea name="notes" placeholder="Colors, sizes, must-haves…">${esc(h.notes || '')}</textarea></div>
+      <button class="btn primary block" type="submit">${isNew ? 'Start the hunt' : 'Save changes'}</button>
+    </form>`;
+}
+function huntFromEvent(ev){
+  const nums = (String(ev.guest_count || '').match(/\d+/g) || []).map(Number); const g = nums.length ? Math.max(...nums) : null;
+  let need_by = null; if(ev.event_date){ const d = parseDate(ev.event_date); d.setDate(d.getDate() - 3); need_by = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  return { event_id: ev.id, guests: g, need_by, charge_per_guest: (g && num(ev.price_agreed)) ? Math.round(num(ev.price_agreed) / g * 100) / 100 : null };
+}
+
 /* ---------- SETTINGS ---------- */
 function viewSettings(){
   const s = S.settings;
@@ -707,6 +953,7 @@ function viewSettings(){
       <div class="card">
         <label>Your name</label><input name="ownerName" value="${esc(s.ownerName)}"/>
         <label>Default extra-guest rate (a starting point — every event can be priced its own way)</label><input name="extraGuestRate" type="number" min="0" step="1" value="${esc(s.extraGuestRate)}"/>
+        <label>Target profit margin % (starting point for supply hunts)</label><input name="targetMargin" type="number" min="0" max="100" step="1" value="${esc(s.targetMargin ?? 70)}"/>
       </div>
       <div class="card">
         <h3>Price list</h3><p class="tiny muted">Base price and how many guests it includes. Feeds the quote helper.</p>
@@ -737,6 +984,29 @@ function bind(r){
     const el = ev.target.closest('[data-action]'); if(!el) return;
     const a = el.dataset.action;
     if(a === 'new') return go('#/new');
+    if(a === 'new-hunt') return go('#/hunt-new');
+    if(r.view === 'hunt'){
+      const h = (S.hunts || []).find(x => x.id === r.id);
+      if(h){
+        if(a === 'store-search'){
+          const q = ($('#huntQuery').value || h.name).trim();
+          window.open(STORES[+el.dataset.i].url(encodeURIComponent(q)), '_blank', 'noopener');
+          if(q !== (h.query || '')){ h.query = q; S.db.saveHunt(h).catch(() => {}); } // remember her search words
+          return;
+        }
+        if(a === 'opt-edit'){ S._editOpt = el.dataset.id; return render(); }
+        if(a === 'opt-cancel'){ S._editOpt = null; return render(); }
+        if(a === 'opt-del'){ if(!confirm('Remove this option?')) return; h.options = (h.options || []).filter(o => o.id !== el.dataset.id); if(h.chosen_id === el.dataset.id){ h.chosen_id = null; h.status = 'open'; } await S.db.saveHunt(h); return render(); }
+        if(a === 'opt-choose'){ h.chosen_id = el.dataset.id; h.status = 'decided'; await S.db.saveHunt(h); toast('Chosen — nice find'); return render(); }
+        if(a === 'opt-unchoose'){ h.chosen_id = null; h.status = 'open'; await S.db.saveHunt(h); return render(); }
+        if(a === 'add-past'){
+          const x = (S._allExpenses || []).find(e => e.id === $('#pastPick').value); if(!x) return toast('Pick something from the list first');
+          h.options = [...(h.options || []), { id: uid(), title: x.item, store: x.store || '', url: '', pack_price: num(x.cost), pack_qty: num(x.qty), shipping: 0, arrives_by: null, rating: null, reviews: null, is_current: true, notes: 'From a past purchase' }];
+          await S.db.saveHunt(h); toast('Added as what you buy now'); return render();
+        }
+        if(a === 'hunt-delete'){ if(!confirm('Delete this supply hunt and its options?')) return; await S.db.deleteHunt(h.id); toast('Deleted'); return go('#/supplies'); }
+      }
+    }
     if(a === 'discard-draft'){ clearDraft(el.dataset.key); toast('Draft discarded'); return render(); }
     if(a === 'filter'){ const q = route().q; const p = new URLSearchParams(q); p.set('status', el.dataset.status); return go('#/events?' + p.toString()); }
     if(a === 'month') return go('#/money?m=' + el.dataset.m);
@@ -872,12 +1142,56 @@ function bind(r){
   const cf = $('#checkForm');
   if(cf) cf.onsubmit = async e => { e.preventDefault(); const f = new FormData(cf); const existing = await S.db.listChecklist(r.id); await S.db.addChecklist([{ event_id: r.id, label: f.get('label').trim(), done:false, sort: existing.length }]); render(); };
 
+  // ---- supply hunts ----
+  const hf = $('#huntForm');
+  if(hf){
+    const hkey = 'sss_draft_hunt_' + (hf.elements.id.value || 'new');
+    if(attachDraft(hf, hkey)) toast('Restored what you were typing');
+    const live = () => {
+      const g = num($('#hGuests').value), per = num($('#hPer').value) || 1;
+      $('#hNeed').textContent = g ? `so you need about ${Math.ceil(g * per)}` : '';
+      const c = num($('#hCharge').value), mg = $('#hMargin').value;
+      $('#hBudget').textContent = (c && mg !== '') ? `${money2(c * (1 - num(mg) / 100))} per guest to spend on ALL supplies` : '';
+    };
+    hf.addEventListener('input', live); live();
+    $('#hEvent').onchange = () => { // tie to an event → fill in what we already know (never overwrites what she typed)
+      const ev = S.events.find(e => e.id === $('#hEvent').value); if(!ev) return; const p = huntFromEvent(ev);
+      if(!$('#hGuests').value && p.guests) $('#hGuests').value = p.guests;
+      if(!$('#hNeedBy').value && p.need_by) $('#hNeedBy').value = p.need_by;
+      if(!$('#hCharge').value && p.charge_per_guest) $('#hCharge').value = p.charge_per_guest;
+      live(); hf.dispatchEvent(new Event('input'));
+    };
+    hf.onsubmit = async e => {
+      e.preventDefault(); const f = new FormData(hf); const v = k => (f.get(k) ?? '').toString().trim(); const n = k => v(k) === '' ? null : num(v(k));
+      const prev = v('id') ? (S.hunts || []).find(x => x.id === v('id')) : null;
+      const h = { ...(prev || { options: [], status: 'open', chosen_id: null }), name: v('hname'), query: v('query'), event_id: v('event_id') || null, guests: n('guests'), units_per_guest: n('units_per_guest') ?? 1, need_by: v('need_by') || null, charge_per_guest: n('charge_per_guest'), target_margin: n('target_margin'), max_unit_cost: n('max_unit_cost'), notes: v('notes') };
+      try { const saved = await S.db.saveHunt(h); clearDraft(hkey); toast(prev ? 'Saved' : 'Hunt started'); go('#/hunt/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message || err)); }
+    };
+  }
+  const readOpt = f => ({ url: (f.get('url') || '').trim(), title: (f.get('title') || '').trim(), store: (f.get('store') || '').trim(), pack_price: num(f.get('pack_price')), pack_qty: f.get('pack_qty') === '' ? 1 : num(f.get('pack_qty')), shipping: num(f.get('shipping')), arrives_by: f.get('arrives_by') || null, rating: f.get('rating') === '' ? null : num(f.get('rating')), reviews: f.get('reviews') === '' ? null : num(f.get('reviews')), is_current: f.get('is_current') === 'on', notes: (f.get('notes') || '').trim() });
+  [['#optForm', false], ['#optEdit', true]].forEach(([sel, editing]) => {
+    const of = $(sel); if(!of) return;
+    const h = (S.hunts || []).find(x => x.id === r.id); if(!h) return;
+    const okey = 'sss_draft_opt_' + h.id;
+    if(!editing) attachDraft(of, okey); // she WILL hop to Amazon mid-form — keep what she typed
+    const urlEl = of.querySelector('[name=url]'), storeEl = of.querySelector('[name=store]');
+    urlEl.addEventListener('input', () => { const s = storeFromUrl(urlEl.value.trim()); if(s && (!storeEl.value || storeEl.dataset.auto === '1')){ storeEl.value = s; storeEl.dataset.auto = '1'; } });
+    storeEl.addEventListener('input', () => { storeEl.dataset.auto = ''; });
+    of.onsubmit = async e => {
+      e.preventDefault(); const o = readOpt(new FormData(of));
+      if(o.is_current) (h.options || []).forEach(x => { x.is_current = false; }); // only one baseline
+      if(editing){ const i = (h.options || []).findIndex(x => x.id === of.dataset.id); if(i >= 0) h.options[i] = { ...h.options[i], ...o }; S._editOpt = null; }
+      else h.options = [...(h.options || []), { id: uid(), ...o }];
+      try { await S.db.saveHunt(h); if(!editing) clearDraft(okey); toast(editing ? 'Option updated' : 'Option added'); render(); } catch(err){ alert('Could not save: ' + (err.message || err)); }
+    };
+  });
+
   // settings form
   const sf = $('#settingsForm');
   if(sf) attachDraft(sf, 'sss_draft_settings');
   if(sf) sf.onsubmit = async e => {
     e.preventDefault(); clearDraft('sss_draft_settings'); const f = new FormData(sf); const s = JSON.parse(JSON.stringify(S.settings));
-    s.ownerName = f.get('ownerName').trim() || 'there'; s.extraGuestRate = num(f.get('extraGuestRate'));
+    s.ownerName = f.get('ownerName').trim() || 'there'; s.extraGuestRate = num(f.get('extraGuestRate')); s.targetMargin = f.get('targetMargin') === '' ? 70 : num(f.get('targetMargin'));
     s.experiences = s.experiences.map((x,i) => ({ name: (f.get('exp_name_'+i)||x.name).trim(), price: num(f.get('exp_price_'+i)), included: parseInt(f.get('exp_inc_'+i)||0,10) }));
     const packing = {}; Object.keys(s.packing).forEach(k => { packing[k] = (f.get('pack_'+k)||'').split('\n').map(x => x.trim()).filter(Boolean); });
     s.experiences.forEach(x => { if(!(x.name in packing)) packing[x.name] = []; }); s.packing = packing;
