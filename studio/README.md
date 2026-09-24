@@ -75,6 +75,41 @@ The function only fetches from Google/iCloud/Outlook calendar hosts, only for a 
 user, only that user's saved link, and at most ~100 days at a time. Its calendar logic
 (repeats, skipped/rescheduled occurrences, time zones, DST) is covered by a Node test.
 
+## Google Calendar auto-add (optional) — events appear in her Google Calendar by themselves
+Once connected, every event she adds, edits, reschedules, marks lost or deletes is mirrored within
+seconds into a calendar named **Salt & Scissors** in her Google account. The Studio asks Google for
+one permission only (`calendar.app.created`): it can touch calendars it created and nothing else.
+Free on every side — no billing account needed.
+
+**A. Google Cloud (one time, ~20 min)** — console.cloud.google.com, any Google account
+1. Create a project (e.g. `salt-scissors-studio`).
+2. **APIs & Services -> Library** -> search **Google Calendar API** -> **Enable**.
+3. **Google Auth Platform** (OAuth consent screen) -> Get started: app name `Salt & Scissors Studio`,
+   support email, audience **External**, contact email -> Create.
+4. **Data Access -> Add or remove scopes** -> paste `https://www.googleapis.com/auth/calendar.app.created`
+   into "Manually add scopes" -> Add -> Update -> Save. (`openid` and `email` need no entry.)
+5. **Audience -> Publish app** (status "In production"). Left in "Testing", Google disconnects her
+   every 7 days. No verification needed for a private app — she just sees a one-time
+   "Google hasn't verified this app" screen (Advanced -> Go to Salt & Scissors Studio).
+6. **Clients -> Create client** -> type **Web application**. Under **Authorized redirect URIs** add
+   exactly: `https://saltandscissors.co/studio/`, `https://www.saltandscissors.co/studio/` and
+   `http://localhost:4820/studio/`. Create -> copy the **Client ID** and **Client secret**.
+
+**B. Supabase**
+1. SQL Editor -> run `migrate-2026-09-20-google-calendar.sql`.
+2. **Edge Functions -> Secrets** -> add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+3. **Edge Functions -> Deploy a new function -> Via Editor** -> name it exactly `google-calendar`,
+   paste all of `edge-functions/google-calendar.ts`, **Deploy**, then turn **off**
+   "Verify JWT with legacy secret" in the function's settings.
+
+**C. In the Studio** — gear icon -> **Google Calendar** -> **Connect Google Calendar** (from Safari or
+Chrome, not the home-screen app). Her existing events are added on the spot.
+
+Her Google token is stored encrypted (the key is derived from the client secret and lives only in
+the function), a failed sync never blocks a save (it queues and retries), and **Sync everything now**
+in Settings rebuilds the calendar if it ever drifts. Changing the client secret later means she
+taps Connect once more.
+
 ## Phone install
 Open the URL in Safari/Chrome → Share → **Add to Home Screen**. It opens full-screen
 with the S&S logo like a native app.

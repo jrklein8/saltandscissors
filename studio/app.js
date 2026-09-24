@@ -8,6 +8,12 @@
 const SUPABASE_URL = 'https://lvurqxxyuvgrcfkguyje.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_vZC-aXl96Dq5lWQEGO-lkQ_udh8Yi2j';
 
+/* Google Calendar connect: after she approves, Google sends her back here with ?code=…&state=… in the address.
+   Stash it and clean the address bar before anything else runs, so a reload can't replay it. */
+(function(){ try { const p = new URLSearchParams(location.search); if(!p.has('state') || !(p.has('code') || p.has('error'))) return;
+  sessionStorage.setItem('sss_gcal_return', JSON.stringify({ code: p.get('code'), error: p.get('error'), state: p.get('state') }));
+  history.replaceState(null, '', location.pathname + '#/settings'); } catch(e){} })();
+
 /* ---------- business defaults (editable in Settings) ---------- */
 const DEFAULT_SETTINGS = {
   ownerName: 'Rebecca',
@@ -231,6 +237,7 @@ class LocalDB {
   async addChecklist(items){ items.forEach(it => { it.id = uid(); this.d.checklist.push(it); }); this.save(); return items; }
   async toggleChecklist(id, done){ const it = this.d.checklist.find(x => x.id === id); if(it) it.done = done; this.save(); }
   async deleteChecklist(id){ this.d.checklist = this.d.checklist.filter(x => x.id !== id); this.save(); }
+  async gcal(){ throw new Error('Google Calendar connects in the real Studio, not demo mode.'); }
   // demo stand-in for her personal calendar, so the soft-red days can be seen without linking anything
   async personalEvents(from, to){
     const out = [], add = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
@@ -253,8 +260,14 @@ class SupaDB {
   constructor(sb){ this.sb = sb; }
   async listEvents(){ const { data, error } = await this.sb.from('events').select('*'); if(error) throw error; return data; }
   async getEvent(id){ const { data, error } = await this.sb.from('events').select('*').eq('id', id).maybeSingle(); if(error) throw error; return data; }
-  async saveEvent(ev){ const row = {...ev}; if(!row.id) delete row.id; delete row.created_at; row.updated_at = new Date().toISOString(); const { data, error } = await this.sb.from('events').upsert(row).select().single(); if(error) throw error; return data; }
-  async deleteEvent(id){ const { error } = await this.sb.from('events').delete().eq('id', id); if(error) throw error; }
+  async saveEvent(ev){ const row = {...ev}; if(!row.id) delete row.id; delete row.created_at; row.updated_at = new Date().toISOString(); const { data, error } = await this.sb.from('events').upsert(row).select().single(); if(error) throw error; gcalQueue(data.id); return data; }
+  async deleteEvent(id){ const { error } = await this.sb.from('events').delete().eq('id', id); if(error) throw error; gcalQueue(id); }
+  // Google Calendar auto-add, through the google-calendar edge function (start | exchange | sync | status | disconnect)
+  async gcal(action, body){
+    const { data, error } = await this.sb.functions.invoke('google-calendar', { body: { action, ...(body || {}) } });
+    if(error){ let msg = error.message || 'Could not reach Google Calendar sync', code = ''; try { const j = await error.context.json(); if(j && j.error){ msg = j.error; code = j.code || ''; } } catch(e){} const err = new Error(msg); err.code = code; throw err; }
+    return data || {};
+  }
   async listExpenses(eventId){ let q = this.sb.from('expenses').select('*').order('created_at'); if(eventId) q = q.eq('event_id', eventId); const { data, error } = await q; if(error) throw error; return data; }
   async addExpense(x){ const { data, error } = await this.sb.from('expenses').insert(x).select().single(); if(error) throw error; return data; }
   async deleteExpense(id){ const { error } = await this.sb.from('expenses').delete().eq('id', id); if(error) throw error; }
@@ -369,6 +382,8 @@ async function refresh(){
   S._allExpenses = all;
   // supply hunts — guarded so the rest of the app still works if the table isn't there yet
   try { S.hunts = await S.db.listHunts(); S._huntsMissing = false; } catch(e){ S.hunts = []; S._huntsMissing = true; }
+  // Google Calendar: anything that didn't sync earlier (no signal, etc.) gets another try, at most once a minute
+  if(gcalOn() && gcalPending().length && !_gcalBusy && Date.now() - _gcalLastTry > 60000) gcalFlush();
 }
 
 /* ============================================================
@@ -561,6 +576,51 @@ function paintPersonalNote(el, date, time, end){
   const c = personalMonth(monthKey(date), draw); if(c && !c.loading) draw(c);
 }
 
+/* ---------- Google Calendar auto-add ---------- */
+// Every save/delete queues that event's id; a moment later one call mirrors it into her "Salt & Scissors" Google calendar.
+// The queue lives in localStorage, so a failed sync (no signal, Google hiccup) is retried later — it never blocks a save.
+const GCAL_Q = 'sss_gcal_pending';
+const gcalOn = () => S.mode === 'live' && !!(S.settings && S.settings.googleCal);
+const gcalPending = () => { try { return JSON.parse(localStorage.getItem(GCAL_Q) || '[]'); } catch(e){ return []; } };
+const gcalSetPending = ids => { try { if(ids.length) localStorage.setItem(GCAL_Q, JSON.stringify(ids)); else localStorage.removeItem(GCAL_Q); } catch(e){} };
+const gcalRedirect = () => location.origin + '/studio/';
+let _gcalTimer = null, _gcalBusy = false, _gcalLastTry = 0; const _gcalDirty = new Set();
+function gcalQueue(id){
+  if(!id || !gcalOn()) return;
+  const ids = gcalPending(); if(!ids.includes(id)) ids.push(id); gcalSetPending(ids); _gcalDirty.add(id);
+  clearTimeout(_gcalTimer); _gcalTimer = setTimeout(gcalFlush, 1200); // quick taps (status, deposit, paid) collapse into one call
+}
+async function gcalFlush(){
+  const ids = gcalPending(); if(!ids.length || !gcalOn()) return;
+  if(_gcalBusy){ clearTimeout(_gcalTimer); _gcalTimer = setTimeout(gcalFlush, 1500); return; }
+  _gcalBusy = true; _gcalLastTry = Date.now(); _gcalDirty.clear();
+  try {
+    await S.db.gcal('sync', { ids });
+    gcalSetPending(gcalPending().filter(x => !ids.includes(x) || _gcalDirty.has(x))); // keep anything edited again mid-flight
+    S._gcalError = null;
+  } catch(err){
+    const first = !S._gcalError; S._gcalError = err.message || String(err);
+    if(err.code === 'not_connected'){ gcalSetPending([]); const s = JSON.parse(JSON.stringify(S.settings)); delete s.googleCal; S.settings = s; try { await S.db.saveSettings(s); } catch(e){} }
+    if(first) toast("Saved — but Google Calendar didn't update. It will retry.");
+  } finally { _gcalBusy = false; }
+}
+// she's back from Google's approval screen (see the top of this file) — finish connecting
+async function gcalFinishConnect(status){
+  let ret = null; try { ret = JSON.parse(sessionStorage.getItem('sss_gcal_return') || 'null'); sessionStorage.removeItem('sss_gcal_return'); } catch(e){}
+  if(!ret) return;
+  let want = ''; try { want = localStorage.getItem('sss_gcal_state') || ''; localStorage.removeItem('sss_gcal_state'); } catch(e){}
+  const say = html => { S._gcalFlash = html; render(); }; // the outcome survives any re-render that happens meanwhile
+  if(ret.error) return say(`<span class="neg">Google Calendar wasn't connected (${esc(ret.error === 'access_denied' ? 'you chose Cancel' : ret.error)}).</span>`);
+  if(!want || ret.state !== want) return say('<span class="neg">That approval didn\'t start from this browser, so it was ignored. Tap Connect again — and use the same browser the whole way through.</span>');
+  if(status && status.isConnected) status.textContent = 'Connecting to Google and adding your events…';
+  try {
+    const out = await S.db.gcal('exchange', { code: ret.code, redirect_uri: gcalRedirect() });
+    const s = JSON.parse(JSON.stringify(S.settings)); s.googleCal = { email: out.email || '', connectedAt: new Date().toISOString() };
+    await S.db.saveSettings(s); S.settings = s; S._gcalError = null;
+    say(`<span class="pos"><b>Connected.</b> ${out.synced} event${out.synced === 1 ? '' : 's'} added to your <b>Salt &amp; Scissors</b> calendar in Google.</span>`);
+  } catch(err){ say(`<span class="neg">Couldn't finish connecting: ${esc(err.message || err)}</span>`); }
+}
+
 /* ---------- double-booking heads-up (her own events vs each other) ---------- */
 const toMin = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
 const minLabel = n => n >= 60 ? (n % 60 ? (n / 60).toFixed(1) : n / 60) + ' hr' : n + ' min';
@@ -728,6 +788,9 @@ async function viewEvent(id){
         ${contactLink?`<span class="small">${contactLink}</span>`:''}
         ${e.source?`<span class="tiny muted">via ${esc(e.source)}</span>`:''}
       </div>
+      ${gcalOn() && e.event_date && isActive(e) ? (gcalPending().includes(e.id) && S._gcalError
+        ? `<p class="tiny" style="margin:.5rem 0 0"><span class="neg">Not on your Google Calendar yet.</span> <button class="iconbtn txt" data-action="gcal-retry">retry</button></p>`
+        : `<p class="tiny muted" style="margin:.5rem 0 0">Added to your Google Calendar automatically.</p>`) : ''}
     </div>
 
     <div class="card">
@@ -1137,6 +1200,25 @@ function viewSettings(){
       </div>
       <button class="btn primary block" type="submit">Save settings</button>
     </form>
+    <div class="card mt" id="gcalCard">
+      <div class="between"><h3>Google Calendar</h3>${s.googleCal ? '<span class="pill booked">connected</span>' : ''}</div>
+      <p class="tiny muted" style="margin:.1rem 0 .5rem">Every event you add or change here shows up in your Google Calendar within a few seconds — on its own calendar named <b>Salt &amp; Scissors</b>, with its own color. The Studio can only touch that one calendar; it can't see or change anything else in your Google account.</p>
+      ${s.googleCal ? `
+        <p class="small" style="margin:0 0 .5rem">Connected${s.googleCal.email ? ' as <b>' + esc(s.googleCal.email) + '</b>' : ''}. Inquiries and quotes are labelled so you can tell them from booked events; events marked lost are removed.</p>
+        <div class="row wrap"><button type="button" class="btn sand sm" data-action="gcal-sync">Sync everything now</button><button type="button" class="btn danger sm" data-action="gcal-disconnect">Disconnect</button></div>`
+      : `
+        <button type="button" class="btn sand sm" data-action="gcal-connect" ${S.mode === 'demo' ? 'disabled' : ''}>Connect Google Calendar</button>
+        ${S.mode === 'demo' ? '<p class="tiny muted" style="margin:.4rem 0 0">Connects in the real Studio, not demo mode.</p>' : ''}
+        <details class="addbox" style="margin-top:.5rem"><summary class="tiny" style="color:var(--terra);font-weight:800;cursor:pointer">What will Google ask me?</summary>
+          <ol class="small" style="padding-left:1.2rem;margin:.5rem 0 0">
+            <li>Pick your Google account.</li>
+            <li>You'll see <b>"Google hasn't verified this app"</b> — that's normal for a private app made just for you. Tap <b>Advanced</b>, then <b>Go to Salt &amp; Scissors Studio</b>.</li>
+            <li>Leave the calendar box <b>checked</b> and tap <b>Continue</b>.</li>
+          </ol>
+          <p class="tiny muted" style="margin:.4rem 0 0">Do this once from Safari or Chrome (not the home-screen app). After that it works everywhere you're signed in.</p>
+        </details>`}
+      <p class="small" id="gcalStatus" style="margin:.6rem 0 0;min-height:1.2em">${S._gcalError && s.googleCal ? `<span class="neg">Last sync didn't go through: ${esc(S._gcalError)}</span>` : ''}</p>
+    </div>
     <form id="pcalForm" class="card mt">
       <div class="between"><h3>Personal calendar</h3>${s.personalCalUrl ? '<span class="pill booked">linked</span>' : ''}</div>
       <p class="tiny muted" style="margin:.1rem 0 .4rem">Shades the days you already have personal plans, and warns you before you book over them. The Studio only <b>reads</b> it — nothing is ever added to or changed in your personal calendar.</p>
@@ -1177,6 +1259,29 @@ function bind(r){
     if(a === 'new') return go('#/new');
     if(a === 'new-hunt') return go('#/hunt-new');
     if(a === 'personal-retry'){ clearPersonal(); return render(); }
+    if(a === 'gcal-connect'){
+      const status = $('#gcalStatus'); el.disabled = true; status.textContent = 'Opening Google…';
+      try {
+        const state = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('');
+        localStorage.setItem('sss_gcal_state', state);
+        const out = await S.db.gcal('start', { redirect_uri: gcalRedirect(), state });
+        location.href = out.url;
+      } catch(err){ el.disabled = false; status.innerHTML = `<span class="neg">${esc(err.message || err)}</span>`; }
+      return;
+    }
+    if(a === 'gcal-retry'){ el.disabled = true; S._gcalError = null; await gcalFlush(); if(!S._gcalError) toast('Added to Google Calendar'); return render(); }
+    if(a === 'gcal-sync'){
+      const status = $('#gcalStatus'); el.disabled = true; status.textContent = 'Syncing…';
+      try { const out = await S.db.gcal('sync', {}); gcalSetPending([]); S._gcalError = null;
+        status.innerHTML = `<span class="pos"><b>All caught up.</b> ${out.synced} event${out.synced === 1 ? '' : 's'} in your Google Calendar${out.removed ? ', ' + out.removed + ' old one' + (out.removed === 1 ? '' : 's') + ' removed' : ''}${out.recreated ? ' (the calendar had been deleted, so a fresh one was made)' : ''}.</span>`;
+      } catch(err){ status.innerHTML = `<span class="neg">${esc(err.message || err)}</span>`; }
+      el.disabled = false; return;
+    }
+    if(a === 'gcal-disconnect'){
+      if(!confirm('Stop adding events to Google Calendar? The Salt & Scissors calendar and what\'s already on it stay in Google until you delete it there.')) return;
+      try { await S.db.gcal('disconnect', {}); } catch(err){ if(err.code !== 'not_connected'){ $('#gcalStatus').innerHTML = `<span class="neg">${esc(err.message || err)}</span>`; return; } }
+      const s = JSON.parse(JSON.stringify(S.settings)); delete s.googleCal; await S.db.saveSettings(s); S.settings = s; gcalSetPending([]); S._gcalError = null; toast('Google Calendar disconnected'); return render();
+    }
     if(a === 'pcal-unlink'){ if(!confirm('Unlink your personal calendar from the Studio?')) return; const f = $('#pcalForm'); f.elements.personalCalUrl.value = ''; return f.requestSubmit(); }
     if(r.view === 'hunt'){
       const h = (S.hunts || []).find(x => x.id === r.id);
@@ -1236,6 +1341,9 @@ function bind(r){
 
   // event page: personal-calendar heads-up (fills in place once the calendar has been read)
   { const pn = $('#personalNote'); if(pn) paintPersonalNote(pn, pn.dataset.date, pn.dataset.time, pn.dataset.end); }
+
+  // settings: finish a Google Calendar connect if she just came back from Google's approval screen
+  { const gs = $('#gcalStatus'); if(gs){ if(S._gcalFlash){ gs.innerHTML = S._gcalFlash; S._gcalFlash = null; } if(S.mode === 'live') gcalFinishConnect(gs); } }
 
   // settings: link / unlink the personal calendar
   const pf = $('#pcalForm');
