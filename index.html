@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K5MRFXG4KS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-K5MRFXG4KS');
+</script>
 <title>Salt &amp; Scissors Creative Co. — Coastal. Creative. Curated. · Wilmington, NC</title>
 <meta name="description" content="Curated craft experiences for kids and adults — Coastal Creamery sensory sundaes, charm bar, canvas & patch parties. Parties, pop-ups and workshops in Wilmington, NC + beyond." />
 <link rel="icon" href="assets/img/logo-full.png?v=2" />
@@ -1175,6 +1183,7 @@
       });
       const data = await res.json().catch(() => null);
       if(!res.ok || !data || String(data.success) !== 'true') throw new Error((data && data.message) || 'send failed');
+      if(window.gtag) gtag('event', 'generate_lead', {form: 'booking'});
       btn.textContent = 'Request Sent ✓';
       note.textContent = 'Thank you! Your request is on its way — expect a reply within one business day.';
       note.style.color = 'var(--sand)';
