@@ -64,8 +64,14 @@ const daysUntil = iso => { const d = parseDate(iso); if(!d) return null; const t
 const countdown = iso => { const n = daysUntil(iso); if(n === null) return 'date TBD'; if(n === 0) return 'today!'; if(n === 1) return 'tomorrow'; if(n < 0) return Math.abs(n) + 'd ago'; if(n < 14) return 'in ' + n + ' days'; if(n < 60) return 'in ' + Math.round(n/7) + ' weeks'; return 'in ' + Math.round(n/30) + ' months'; };
 const monthKey = iso => iso ? iso.slice(0,7) : '';
 const monthLabel = key => { const [y,m] = key.split('-').map(Number); return new Date(y, m-1, 1).toLocaleDateString('en-US', { month:'long', year:'numeric' }); };
-const balanceOf = ev => Math.max(0, num(ev.price_agreed) - (ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0)));
-const collectedOf = ev => ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0);
+// market / pop-up sales, split by how people paid (stored on the event as { cash, venmo, square, other })
+const SALE_METHODS = [['cash','Cash'],['venmo','Venmo'],['square','Square'],['other','Other']];
+const salesTotal = ev => ev && ev.sales ? SALE_METHODS.reduce((t,[k]) => t + num(ev.sales[k]), 0) : 0;
+const hasSales = ev => !!(ev && ev.sales && SALE_METHODS.some(([k]) => ev.sales[k] != null && ev.sales[k] !== ''));
+const isMarket = ev => ev.occasion === 'Pop-Up / Market' || hasSales(ev);
+const revenueOf = ev => hasSales(ev) ? salesTotal(ev) : num(ev.price_agreed);
+const balanceOf = ev => hasSales(ev) ? 0 : Math.max(0, num(ev.price_agreed) - (ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0)));
+const collectedOf = ev => hasSales(ev) ? salesTotal(ev) : (ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0));
 const isActive = ev => ev.status !== 'lost';
 const download = (name, text, type='text/plain') => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
 /* form drafts — survive app switching / tab reloads on phones */
@@ -175,7 +181,7 @@ function seedDemo(){
   const d = new Date(); const y = d.getFullYear(), m = d.getMonth();
   const iso = (dd, mo=m) => { const x = new Date(y, mo, dd); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
   const now = new Date().toISOString();
-  const e1 = uid(), e2 = uid(), e3 = uid(), e4 = uid(), e5 = uid(), e6 = uid();
+  const e1 = uid(), e2 = uid(), e3 = uid(), e4 = uid(), e5 = uid(), e6 = uid(), e7 = uid();
   const r1 = uid(), r2 = uid();
   return {
     settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
@@ -189,6 +195,7 @@ function seedDemo(){
       { id:e3, status:'quoted', client_name:'Ms. Alvarez (PTA)', client_contact:'(910) 555-0142', source:'Referral', occasion:'School / Community', honoree:'', experience:'Sensory Scenes', guest_count:40, event_date: iso(d.getDate()+33), event_time:'10:00', location:'Ogden Elementary gym', theme:'Ocean explorers', notes:'Needs W-9 for the school. Two hosts recommended.', price_lines:[{label:'Sensory Scenes (includes 10)',amount:275},{label:'30 extra guests × $15',amount:450}], price_quoted:725, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e4, status:'booked', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', experience_detail:'Sensory sundae booth', guest_count:'', event_date: iso(d.getDate()+12), event_time:'11:00', event_end:'15:00', location:'Cargo District, Wilmington', theme:'Sensory sundae pop-up', notes:'Booth fee $40. Bring the banner + tent weights.', price_quoted:0, price_agreed:0, deposit:0, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e5, status:'done', client_name:'Taryn C.', client_contact:'@taryn.c', source:'Instagram', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:10, event_date: iso(d.getDate()-9), event_time:'18:30', location:'Client home, Landfall', theme:'Galentines', notes:'Loved the matching mom/daughter sets.', price_quoted:325, price_agreed:325, deposit:100, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
+      { id:e7, status:'done', client_name:'Riverfront Farmers Market', client_contact:'', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Charm Bar', experience_detail:'Make-a-bracelet table', guest_count:'', event_date: iso(d.getDate()-3), event_time:'08:00', event_end:'13:00', location:'Riverfront Park, downtown', theme:'', notes:'Booth fee $35 paid in cash.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, sales:{ cash:212, venmo:148, square:96.5, other:null }, created_at:now, updated_at:now },
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
     ],
     expenses: [
@@ -223,6 +230,7 @@ class LocalDB {
   async listEvents(){ return this.d.events.map(e => ({...e})); }
   async getEvent(id){ const e = this.d.events.find(e => e.id === id); return e ? {...e} : null; }
   async saveEvent(ev){ const now = new Date().toISOString(); ev.updated_at = now; const i = this.d.events.findIndex(e => e.id === ev.id); if(i < 0){ ev.id = ev.id || uid(); ev.created_at = ev.created_at || now; this.d.events.push(ev); } else this.d.events[i] = ev; this.save(); return {...ev}; }
+  async updateSales(id, sales){ const e = this.d.events.find(x => x.id === id); if(e){ e.sales = sales; e.updated_at = new Date().toISOString(); } this.save(); }
   async deleteEvent(id){ this.d.events = this.d.events.filter(e => e.id !== id); this.d.expenses = this.d.expenses.filter(x => x.event_id !== id); this.d.checklist = this.d.checklist.filter(x => x.event_id !== id); this.save(); }
   async listExpenses(eventId){ return this.d.expenses.filter(x => !eventId || x.event_id === eventId).map(x => ({...x})); }
   async addExpense(x){ x.id = uid(); x.created_at = new Date().toISOString(); this.d.expenses.push(x); this.save(); return {...x}; }
@@ -262,6 +270,7 @@ class SupaDB {
   async getEvent(id){ const { data, error } = await this.sb.from('events').select('*').eq('id', id).maybeSingle(); if(error) throw error; return data; }
   async saveEvent(ev){ const row = {...ev}; if(!row.id) delete row.id; delete row.created_at; row.updated_at = new Date().toISOString(); const { data, error } = await this.sb.from('events').upsert(row).select().single(); if(error) throw error; gcalQueue(data.id); return data; }
   async deleteEvent(id){ const { error } = await this.sb.from('events').delete().eq('id', id); if(error) throw error; gcalQueue(id); }
+  async updateSales(id, sales){ const { error } = await this.sb.from('events').update({ sales, updated_at: new Date().toISOString() }).eq('id', id); if(error) throw new Error(/column/.test(error.message) ? 'Market sales are not set up yet (run migrate-2026-10-27-market-sales.sql in Supabase).' : error.message); }
   // Google Calendar auto-add, through the google-calendar edge function (start | exchange | sync | status | disconnect)
   async gcal(action, body){
     const { data, error } = await this.sb.functions.invoke('google-calendar', { body: { action, ...(body || {}) } });
@@ -492,7 +501,7 @@ function viewHome(){
   const owedTotal = owed.reduce((t,e) => t + balanceOf(e), 0);
   const mk = monthKey(today);
   const thisMonth = evs.filter(e => ['booked','done'].includes(e.status) && monthKey(e.event_date) === mk);
-  const rev = thisMonth.reduce((t,e) => t + num(e.price_agreed), 0);
+  const rev = thisMonth.reduce((t,e) => t + revenueOf(e), 0);
   const hour = new Date().getHours(); const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const nextEv = upcoming[0];
   return `
@@ -529,7 +538,7 @@ function eventCard(e){
     <div class="between"><span class="when">${fmtDate(e.event_date)}${e.event_time?' · '+fmtTime(e.event_time):''}</span><span class="countdown">${countdown(e.event_date)}</span></div>
     <div class="name">${esc(e.client_name)}${e.honoree?` <span class="muted small">· ${esc(e.honoree)}</span>`:''}</div>
     <div class="meta">${esc(e.experience||'Experience TBD')} · ${esc(e.occasion||'')}${e.guest_count?' · '+e.guest_count+' guests':''}${e.location?' · '+esc(e.location):''}</div>
-    <div class="row wrap" style="margin-top:.45rem"><span class="pill ${e.status}">${e.status}</span>${clash?`<span class="pill clash">${clash==='overlap'?'overlaps':'back-to-back'}</span>`:''}${num(e.price_agreed)?`<span class="money" style="font-size:1rem">${money(e.price_agreed)}</span>`:''}${bal>0&&e.status!=='inquiry'?`<span class="pill due">${money(bal)} due</span>`:(e.paid_in_full?'<span class="pill paid">paid</span>':'')}</div>
+    <div class="row wrap" style="margin-top:.45rem"><span class="pill ${e.status}">${e.status}</span>${clash?`<span class="pill clash">${clash==='overlap'?'overlaps':'back-to-back'}</span>`:''}${revenueOf(e)?`<span class="money" style="font-size:1rem">${money(revenueOf(e))}</span>`:''}${hasSales(e)?'<span class="pill paid">sales in</span>':''}${bal>0&&e.status!=='inquiry'?`<span class="pill due">${money(bal)} due</span>`:(e.paid_in_full?'<span class="pill paid">paid</span>':'')}</div>
   </a>`;
 }
 
@@ -755,7 +764,8 @@ async function viewEvent(id){
   const urls = {}; await Promise.all(receipts.map(async r => { urls[r.id] = await S.db.receiptUrl(r); }));
   const costs = eventCosts(expenses, receipts);
   const spend = costs.trueCost;
-  const agreed = num(e.price_agreed), bal = balanceOf(e), profit = agreed - spend;
+  const agreed = num(e.price_agreed), bal = balanceOf(e), profit = revenueOf(e) - spend;
+  const market = isMarket(e), sales = e.sales || {};
   const rlabel = r => `${r.vendor || 'Receipt'} · ${fmtDate(r.receipt_date)}`;
   const itemEditForm = x => `<form class="iedit" data-id="${x.id}"><input name="item" value="${esc(x.item)}" placeholder="Item" required/><input name="qty" type="number" step="any" min="0" placeholder="qty" value="${x.qty??''}"/><input name="cost" type="number" step="0.01" min="0" value="${num(x.cost)}" required/><input name="store" class="wide" list="vendorList" value="${esc(x.store||'')}" placeholder="Where (Amazon, Target…)"/><div class="btns"><button class="btn sand sm" type="submit">Save</button><button type="button" class="btn soft sm" data-action="cancel-edit">Cancel</button></div></form>`;
   const doneCount = checklist.filter(c => c.done).length;
@@ -793,9 +803,26 @@ async function viewEvent(id){
         : `<p class="tiny muted" style="margin:.5rem 0 0">Added to your Google Calendar automatically.</p>`) : ''}
     </div>
 
-    <div class="card">
-      <div class="between"><h3>Money</h3>${e.paid_in_full?'<span class="pill paid">paid in full</span>':bal>0?`<span class="pill due">${money(bal)} due</span>`:''}</div>
-      ${agreed?`<div class="summary">
+    ${market ? `<div class="card">
+      <div class="between"><h3>Market sales</h3>${hasSales(e)?`<span class="money">${money2(salesTotal(e))}</span>`:''}</div>
+      <p class="tiny muted" style="margin:0 0 .5rem">What you took in at the booth, by how people paid. Booth fees and supplies go under receipts below.</p>
+      <form id="salesForm">
+        <div class="grid2">${SALE_METHODS.map(([k,l]) => `<div><label>${l}</label><input name="${k}" type="number" step="0.01" min="0" inputmode="decimal" placeholder="$" value="${sales[k]!=null&&sales[k]!==''?esc(sales[k]):''}"/></div>`).join('')}</div>
+        <div class="between" style="margin:.5rem 0"><span class="small muted">Total sales</span><b id="salesTotal">${money2(salesTotal(e))}</b></div>
+        <button class="btn sand sm" type="submit">${hasSales(e)?'Update sales':'Save sales'}</button>
+      </form>
+      ${hasSales(e)?`<div class="summary" style="margin-top:.7rem">
+        <div class="srow"><span>Sales</span><b>${money2(salesTotal(e))}</b></div>
+        <div class="srow"><button type="button" class="linkish" data-action="jump" data-target="supplies">Supplies &amp; fees</button><b>${money2(costs.supplies)}</b></div>
+        <div class="srow"><span>Shipping &amp; tax</span><b>${money2(costs.shipTax)}</b></div>
+        <div class="srow total"><span>True cost</span><b>${money2(costs.trueCost)}</b></div>
+        <div class="srow profit"><span>Profit</span><b class="${profit>=0?'pos':'neg'}">${money2(profit)}</b></div>
+      </div>`:''}
+    </div>` : ''}
+
+    ${!market || agreed || num(e.price_quoted) ? `<div class="card">
+      <div class="between"><h3>${market?'Flat fee':'Money'}</h3>${hasSales(e)?'':e.paid_in_full?'<span class="pill paid">paid in full</span>':bal>0?`<span class="pill due">${money(bal)} due</span>`:''}</div>
+      ${agreed&&!hasSales(e)?`<div class="summary">
         <div class="srow"><span>Agreed total</span><b>${money(agreed)}</b></div>
         <div class="srow"><span>${e.paid_in_full?'Collected (paid in full)':'Deposit collected'}</span><b>${money(collectedOf(e))}</b></div>
         <div class="srow"><button type="button" class="linkish" data-action="jump" data-target="supplies">Supplies</button><b>${money2(costs.supplies)}</b></div>
@@ -810,8 +837,8 @@ async function viewEvent(id){
       </div>
       <div class="switch"><span class="small">Deposit ${num(e.deposit)?'<b>'+money(e.deposit)+'</b>':''} received</span><input type="checkbox" data-action="toggle" data-field="deposit_paid" ${e.deposit_paid?'checked':''}/></div>
       <div class="switch"><span class="small">Paid in full</span><input type="checkbox" data-action="toggle" data-field="paid_in_full" ${e.paid_in_full?'checked':''}/></div>
-      ${agreed?`<div class="between mt"><span class="small muted">Collected so far</span><b>${money(collectedOf(e))}</b></div>`:''}
-    </div>
+      ${agreed&&!hasSales(e)?`<div class="between mt"><span class="small muted">Collected so far</span><b>${money(collectedOf(e))}</b></div>`:''}
+    </div>` : ''}
 
     <div class="card" id="supplies">
       <div class="between"><h3>Receipts &amp; orders</h3><span class="money">${money2(costs.trueCost)}</span></div>
@@ -961,7 +988,7 @@ function viewClients(){
   S.events.forEach(e => {
     const k = (e.client_name||'').trim(); if(!k) return;
     const c = map.get(k.toLowerCase()) || { name:k, contact:'', count:0, total:0, last:'', next:'', honorees:new Set() };
-    c.count++; if(isActive(e)) c.total += num(e.price_agreed);
+    c.count++; if(isActive(e)) c.total += revenueOf(e);
     if(e.client_contact) c.contact = e.client_contact;
     if(e.honoree) c.honorees.add(e.honoree);
     if(e.event_date){ if(e.event_date < todayISO()){ if(e.event_date > c.last) c.last = e.event_date; } else if(!c.next || e.event_date < c.next) c.next = e.event_date; }
@@ -989,29 +1016,34 @@ function viewMoney(q){
   const evs = S.events.filter(e => ['booked','done'].includes(e.status));
   const inMonth = evs.filter(e => monthKey(e.event_date) === mk).sort((a,b) => (a.event_date||'').localeCompare(b.event_date||''));
   const spendBy = S._spendByEvent || {};
-  const rev = inMonth.reduce((t,e) => t + num(e.price_agreed), 0);
+  const rev = inMonth.reduce((t,e) => t + revenueOf(e), 0);
   const col = inMonth.reduce((t,e) => t + collectedOf(e), 0);
   const spend = inMonth.reduce((t,e) => t + num(spendBy[e.id]), 0);
-  const allRev = evs.reduce((t,e) => t + num(e.price_agreed), 0);
+  const allRev = evs.reduce((t,e) => t + revenueOf(e), 0);
+  // market takings by payment method (this month + all time) — handy at tax time
+  const byMethod = list => SALE_METHODS.map(([k,l]) => [l, list.reduce((t,e) => t + (hasSales(e) ? num(e.sales[k]) : 0), 0)]).filter(([,v]) => v > 0);
+  const mMonth = byMethod(inMonth), mAll = byMethod(evs);
+  const methodLine = (m, total) => `<div class="tiny muted" style="margin:.3rem 0 0">Market sales ${money(total)}: ${m.map(([l,v]) => l + ' ' + money(v)).join(' · ')}</div>`;
   const allSpend = Object.values(spendBy).reduce((t,v) => t + num(v), 0);
   const owed = evs.reduce((t,e) => t + balanceOf(e), 0);
   return `
     <span class="eyebrow">Money</span>
     <div class="between"><button class="btn soft sm" data-action="month" data-m="${keyOf(prev)}">‹</button><h1 style="margin:0;font-size:1.4rem">${esc(monthLabel(mk))}</h1><button class="btn soft sm" data-action="month" data-m="${keyOf(next)}">›</button></div>
     <div class="stats">
-      <div class="stat cool"><div class="n">${money(rev)}</div><div class="l">agreed revenue</div></div>
+      <div class="stat cool"><div class="n">${money(rev)}</div><div class="l">revenue</div></div>
       <div class="stat"><div class="n">${money(col)}</div><div class="l">collected</div></div>
       <div class="stat warm"><div class="n">${money2(spend)}</div><div class="l">true cost</div></div>
       <div class="stat"><div class="n ${rev-spend>=0?'pos':'neg'}">${money(rev-spend)}</div><div class="l">profit</div></div>
     </div>
     <div class="card">
-      ${inMonth.length ? `<table class="tbl"><tr><th>Event</th><th class="r">Agreed</th><th class="r">Cost</th><th class="r">Profit</th></tr>
-        ${inMonth.map(e => `<tr><td><a href="#/event/${e.id}" style="text-decoration:none"><b>${esc(e.client_name)}</b></a><div class="tiny muted">${fmtDate(e.event_date)} · ${esc(e.experience||'')}${balanceOf(e)>0?' · <span class="neg">'+money(balanceOf(e))+' due</span>':''}</div></td><td class="r">${money(e.price_agreed)}</td><td class="r">${money2(spendBy[e.id]||0)}</td><td class="r ${num(e.price_agreed)-num(spendBy[e.id])>=0?'pos':'neg'}">${money2(num(e.price_agreed)-num(spendBy[e.id]))}</td></tr>`).join('')}</table>`
+      ${inMonth.length ? `<table class="tbl"><tr><th>Event</th><th class="r">Revenue</th><th class="r">Cost</th><th class="r">Profit</th></tr>
+        ${inMonth.map(e => `<tr><td><a href="#/event/${e.id}" style="text-decoration:none"><b>${esc(e.client_name)}</b></a><div class="tiny muted">${fmtDate(e.event_date)} · ${esc(e.experience||'')}${hasSales(e)?' · market sales':''}${balanceOf(e)>0?' · <span class="neg">'+money(balanceOf(e))+' due</span>':''}</div></td><td class="r">${money(revenueOf(e))}</td><td class="r">${money2(spendBy[e.id]||0)}</td><td class="r ${revenueOf(e)-num(spendBy[e.id])>=0?'pos':'neg'}">${money2(revenueOf(e)-num(spendBy[e.id]))}</td></tr>`).join('')}</table>${mMonth.length ? methodLine(mMonth, inMonth.reduce((t,e) => t + salesTotal(e), 0)) : ''}`
         : `<div class="empty"><span class="hand">no booked events this month</span></div>`}
     </div>
     <div class="card">
       <h3>All time</h3>
-      <div class="between small"><span class="muted">Agreed revenue</span><b>${money(allRev)}</b></div>
+      <div class="between small"><span class="muted">Revenue (agreed + market sales)</span><b>${money(allRev)}</b></div>
+      ${mAll.length ? methodLine(mAll, evs.reduce((t,e) => t + salesTotal(e), 0)) : ''}
       <div class="between small"><span class="muted">True cost (supplies + shipping/tax)</span><b>${money2(allSpend)}</b></div>
       <div class="between small"><span class="muted">Profit</span><b class="${allRev-allSpend>=0?'pos':'neg'}">${money2(allRev-allSpend)}</b></div>
       <div class="between small"><span class="muted">Still owed to you</span><b class="neg">${money(owed)}</b></div>
@@ -1416,11 +1448,22 @@ function bind(r){
       e.preventDefault(); const f = new FormData(ef); const o = Object.fromEntries(f.entries());
       const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:(o.source||'').trim(), occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, experience_detail:(o.experience_detail||'').trim(), guest_count:(o.guest_count||'').trim()||null, event_date:o.event_date||null, event_time:o.event_time||null, event_end:o.event_end||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit), deposit_paid: !!o.deposit_paid, price_lines: (()=>{ try { return (JSON.parse(o.price_lines||'[]')||[]).filter(l => (l.label||'').trim() || l.amount !== '').map(l => ({ label:(l.label||'').trim(), amount:num(l.amount) })); } catch(e){ return []; } })() };
       const prev = o.id ? S.events.find(x => x.id === o.id) : null;
-      if(prev){ ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.paid_in_full = false; }
+      if(prev){ ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; if(prev.sales) ev.sales = prev.sales; } else { ev.paid_in_full = false; }
       // lock the button while saving — a second tap on a slow connection was creating two identical events
       const btn = ef.querySelector('button[type=submit]'); if(btn.disabled) return; btn.disabled = true; const label = btn.textContent; btn.textContent = 'Saving…';
       try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); btn.disabled = false; btn.textContent = label; }
     };
+  }
+
+  // market sales form — live total while typing, one small update on save
+  const sf0 = $('#salesForm');
+  if(sf0){
+    const tot = () => { $('#salesTotal').textContent = money2(SALE_METHODS.reduce((t,[k]) => t + num(sf0.elements[k].value), 0)); };
+    sf0.addEventListener('input', tot);
+    sf0.onsubmit = async ev => { ev.preventDefault(); const btn = sf0.querySelector('button[type=submit]'); if(btn.disabled) return; btn.disabled = true;
+      const sales = {}; SALE_METHODS.forEach(([k]) => { const v = sf0.elements[k].value; sales[k] = v === '' ? null : num(v); });
+      const any = SALE_METHODS.some(([k]) => sales[k] != null);
+      try { await S.db.updateSales(r.id, any ? sales : null); toast(any ? 'Sales saved' : 'Sales cleared'); render(); } catch(err){ btn.disabled = false; alert('Could not save: ' + (err.message||err)); } };
   }
 
   // expense form
@@ -1583,9 +1626,9 @@ async function exportCSV(){
   const expenses = await S.db.listExpenses();
   const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
   const receipts = S._allReceipts || [];
-  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Deposit','Deposit paid','Paid in full','Collected','Supplies','Shipping/tax','True cost','Profit','Source','Notes'].join(',')];
+  const ev = [['Date','Start','End','Client','Contact','Status','Occasion','Guest of honor','Experience','Details','Guests','Location','Theme','Package','Quoted','Agreed','Sales cash','Sales Venmo','Sales Square','Sales other','Sales total','Revenue','Deposit','Deposit paid','Paid in full','Collected','Supplies','Shipping/tax','True cost','Profit','Source','Notes'].join(',')];
   const cb = S._costByEvent || {};
-  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => { const c = cb[e.id] || { supplies:0, shipTax:0, trueCost:0 }; ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), c.supplies.toFixed(2), c.shipTax.toFixed(2), c.trueCost.toFixed(2), (num(e.price_agreed)-c.trueCost).toFixed(2), e.source, e.notes].map(q).join(',')); });
+  S.events.slice().sort((a,b) => (a.event_date||'').localeCompare(b.event_date||'')).forEach(e => { const c = cb[e.id] || { supplies:0, shipTax:0, trueCost:0 }; ev.push([e.event_date, e.event_time, e.event_end, e.client_name, e.client_contact, e.status, e.occasion, e.honoree, e.experience, e.experience_detail, e.guest_count, e.location, e.theme, (e.price_lines||[]).map(l => l.label + ' ' + money(l.amount)).join('; '), e.price_quoted, e.price_agreed, ...SALE_METHODS.map(([k]) => hasSales(e) ? num(e.sales[k]) : ''), hasSales(e) ? salesTotal(e).toFixed(2) : '', revenueOf(e), e.deposit, e.deposit_paid?'yes':'no', e.paid_in_full?'yes':'no', collectedOf(e), c.supplies.toFixed(2), c.shipTax.toFixed(2), c.trueCost.toFixed(2), (revenueOf(e)-c.trueCost).toFixed(2), e.source, e.notes].map(q).join(',')); });
   const ex = [['Date bought','Event date','Client','Item','Qty','Cost','Each','Store','Receipt'].join(',')];
   expenses.forEach(x => { const e = S.events.find(v => v.id === x.event_id) || {}; const r = receipts.find(v => v.id === x.receipt_id); const each = (x.qty && num(x.qty) > 0) ? (num(x.cost)/num(x.qty)).toFixed(4) : ''; ex.push([x.created_at?x.created_at.slice(0,10):'', e.event_date, e.client_name, x.item, x.qty ?? '', num(x.cost).toFixed(2), each, x.store, r ? (r.vendor||'') + ' ' + (r.receipt_date||'') : ''].map(q).join(',')); });
   const rc = [['Receipt date','Vendor','Event date','Client','Items subtotal','Shipping','Tax','Total','Notes'].join(',')];
