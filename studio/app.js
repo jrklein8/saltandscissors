@@ -1324,7 +1324,8 @@ function bind(r){
       if(!items.length) return toast('Already loaded');
       await S.db.addChecklist(items); toast(exp + ' list added'); return render();
     }
-    if(a === 'delete'){ if(!confirm('Delete this event and its supplies/checklist?')) return; await S.db.deleteEvent(r.id); toast('Deleted'); return go('#/events'); }
+    if(a === 'delete'){ if(el.disabled || !confirm('Delete this event and its supplies/checklist?')) return; el.disabled = true; el.textContent = 'Deleting…';
+      try { await S.db.deleteEvent(r.id); toast('Deleted'); return go('#/events'); } catch(err){ el.disabled = false; el.textContent = 'Delete this event'; alert('Could not delete: ' + (err.message||err)); return; } }
     if(a === 'cal-link'){ const m = el.closest('details'); if(m) m.removeAttribute('open'); return; } // let the link open; just tidy the menu
     if(a === 'ics'){ const m = el.closest('details'); if(m) m.removeAttribute('open'); const e = S.events.find(x => x.id === r.id); return download(`salt-scissors-${(e.client_name||'event').replace(/\W+/g,'-').toLowerCase()}.ics`, makeICS(e), 'text/calendar;charset=utf-8'); }
     if(a === 'export'){ return exportCSV(); }
@@ -1416,7 +1417,9 @@ function bind(r){
       const ev = { id: o.id || undefined, status:o.status, client_name:o.client_name.trim(), client_contact:o.client_contact.trim(), source:(o.source||'').trim(), occasion:o.occasion, honoree:o.honoree.trim(), experience:o.experience, experience_detail:(o.experience_detail||'').trim(), guest_count:(o.guest_count||'').trim()||null, event_date:o.event_date||null, event_time:o.event_time||null, event_end:o.event_end||null, location:o.location.trim(), theme:o.theme.trim(), notes:o.notes.trim(), price_quoted:o.price_quoted===''?null:num(o.price_quoted), price_agreed:o.price_agreed===''?null:num(o.price_agreed), deposit:o.deposit===''?null:num(o.deposit), deposit_paid: !!o.deposit_paid, price_lines: (()=>{ try { return (JSON.parse(o.price_lines||'[]')||[]).filter(l => (l.label||'').trim() || l.amount !== '').map(l => ({ label:(l.label||'').trim(), amount:num(l.amount) })); } catch(e){ return []; } })() };
       const prev = o.id ? S.events.find(x => x.id === o.id) : null;
       if(prev){ ev.paid_in_full = prev.paid_in_full; ev.created_at = prev.created_at; } else { ev.paid_in_full = false; }
-      try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); }
+      // lock the button while saving — a second tap on a slow connection was creating two identical events
+      const btn = ef.querySelector('button[type=submit]'); if(btn.disabled) return; btn.disabled = true; const label = btn.textContent; btn.textContent = 'Saving…';
+      try { const saved = await S.db.saveEvent(ev); clearDraft(dkey); toast(prev ? 'Saved' : 'Request added'); go('#/event/' + saved.id); } catch(err){ alert('Could not save: ' + (err.message||err)); btn.disabled = false; btn.textContent = label; }
     };
   }
 
