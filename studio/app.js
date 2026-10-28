@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = {
   ownerName: 'Rebecca',
   extraGuestRate: 10,
   targetMargin: 70,   // default target profit margin (%) for supply hunts
+  marketProducts: ['Squishies', 'Playdough', 'Signature Sundae', 'Deluxe Sundae'], // the tally on market events
   experiences: [
     { name: 'Coastal Creamery',           price: 350, included: 15 },
     { name: 'Charm Bar',                  price: 325, included: 15 },
@@ -68,7 +69,9 @@ const monthLabel = key => { const [y,m] = key.split('-').map(Number); return new
 const SALE_METHODS = [['cash','Cash'],['venmo','Venmo'],['square','Square'],['other','Other']];
 const salesTotal = ev => ev && ev.sales ? SALE_METHODS.reduce((t,[k]) => t + num(ev.sales[k]), 0) : 0;
 const hasSales = ev => !!(ev && ev.sales && SALE_METHODS.some(([k]) => ev.sales[k] != null && ev.sales[k] !== ''));
-const isMarket = ev => ev.occasion === 'Pop-Up / Market' || hasSales(ev);
+const salesItems = ev => (ev && ev.sales && ev.sales.items) || {};            // { 'Signature Sundae': 23, … }
+const salesAny = ev => !!(ev && ev.sales && (hasSales(ev) || Object.keys(salesItems(ev)).length || ev.sales.notes));
+const isMarket = ev => ev.occasion === 'Pop-Up / Market' || salesAny(ev);
 const revenueOf = ev => hasSales(ev) ? salesTotal(ev) : num(ev.price_agreed);
 const balanceOf = ev => hasSales(ev) ? 0 : Math.max(0, num(ev.price_agreed) - (ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0)));
 const collectedOf = ev => hasSales(ev) ? salesTotal(ev) : (ev.paid_in_full ? num(ev.price_agreed) : (ev.deposit_paid ? num(ev.deposit) : 0));
@@ -181,7 +184,7 @@ function seedDemo(){
   const d = new Date(); const y = d.getFullYear(), m = d.getMonth();
   const iso = (dd, mo=m) => { const x = new Date(y, mo, dd); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
   const now = new Date().toISOString();
-  const e1 = uid(), e2 = uid(), e3 = uid(), e4 = uid(), e5 = uid(), e6 = uid(), e7 = uid();
+  const e1 = uid(), e2 = uid(), e3 = uid(), e4 = uid(), e5 = uid(), e6 = uid(), e7 = uid(), e8 = uid();
   const r1 = uid(), r2 = uid();
   return {
     settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
@@ -195,7 +198,8 @@ function seedDemo(){
       { id:e3, status:'quoted', client_name:'Ms. Alvarez (PTA)', client_contact:'(910) 555-0142', source:'Referral', occasion:'School / Community', honoree:'', experience:'Sensory Scenes', guest_count:40, event_date: iso(d.getDate()+33), event_time:'10:00', location:'Ogden Elementary gym', theme:'Ocean explorers', notes:'Needs W-9 for the school. Two hosts recommended.', price_lines:[{label:'Sensory Scenes (includes 10)',amount:275},{label:'30 extra guests × $15',amount:450}], price_quoted:725, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e4, status:'booked', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', experience_detail:'Sensory sundae booth', guest_count:'', event_date: iso(d.getDate()+12), event_time:'11:00', event_end:'15:00', location:'Cargo District, Wilmington', theme:'Sensory sundae pop-up', notes:'Booth fee $40. Bring the banner + tent weights.', price_quoted:0, price_agreed:0, deposit:0, deposit_paid:false, paid_in_full:false, created_at:now, updated_at:now },
       { id:e5, status:'done', client_name:'Taryn C.', client_contact:'@taryn.c', source:'Instagram', occasion:'Girls\' Night', honoree:'', experience:'Charm Bar', guest_count:10, event_date: iso(d.getDate()-9), event_time:'18:30', location:'Client home, Landfall', theme:'Galentines', notes:'Loved the matching mom/daughter sets.', price_quoted:325, price_agreed:325, deposit:100, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
-      { id:e7, status:'done', client_name:'Riverfront Farmers Market', client_contact:'', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Charm Bar', experience_detail:'Make-a-bracelet table', guest_count:'', event_date: iso(d.getDate()-3), event_time:'08:00', event_end:'13:00', location:'Riverfront Park, downtown', theme:'', notes:'Booth fee $35 paid in cash.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, sales:{ cash:212, venmo:148, square:96.5, other:null }, created_at:now, updated_at:now },
+      { id:e7, status:'done', client_name:'Riverfront Farmers Market', client_contact:'', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Charm Bar', experience_detail:'Make-a-bracelet table', guest_count:'', event_date: iso(d.getDate()-3), event_time:'08:00', event_end:'13:00', location:'Riverfront Park, downtown', theme:'', notes:'Booth fee $35 paid in cash.', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, sales:{ cash:212, venmo:148, square:96.5, other:null, items:{ 'Signature Sundae':23, 'Deluxe Sundae':9, 'Squishies':14 }, notes:'Great crowd before 11, slow after noon. Corner booth by the fountain was perfect — ask for it again. Ran out of blue drizzle.' }, created_at:now, updated_at:now },
+      { id:e8, status:'done', client_name:'Cargo District Market', client_contact:'events@cargodistrict', source:'Market / Pop-Up', occasion:'Pop-Up / Market', honoree:'', experience:'Coastal Creamery', experience_detail:'Sensory sundae booth', guest_count:'', event_date: iso(d.getDate()-31), event_time:'11:00', event_end:'15:00', location:'Cargo District, Wilmington', theme:'', notes:'', price_quoted:null, price_agreed:null, deposit:null, deposit_paid:false, paid_in_full:false, sales:{ cash:160, venmo:95, square:40, other:null, items:{ 'Signature Sundae':12, 'Playdough':18 }, notes:'Rainy — half the usual crowd. Playdough still moved.' }, created_at:now, updated_at:now },
       { id:e6, status:'done', client_name:'Rachel E.', client_contact:'(910) 555-0177', source:'Referral', occasion:'Birthday', honoree:'Twins, turning 5', experience:'Sensory Scenes', guest_count:12, event_date: iso(d.getDate()-21), event_time:'15:00', location:'Hugh MacRae Park shelter', theme:'Dinosaur dig', notes:'', price_quoted:305, price_agreed:305, deposit:75, deposit_paid:true, paid_in_full:true, created_at:now, updated_at:now },
     ],
     expenses: [
@@ -413,6 +417,7 @@ async function render(){
     else if(r.view === 'edit' && r.id) body = viewForm(S.events.find(e => e.id === r.id), r.q);
     else if(r.view === 'clients') body = viewClients();
     else if(r.view === 'money') body = viewMoney(r.q);
+    else if(r.view === 'markets') body = viewMarkets(r.q);
     else if(r.view === 'settings') body = viewSettings();
     else if(r.view === 'supplies') body = viewHunts();
     else if(r.view === 'hunt' && r.id) body = viewHunt(r.id);
@@ -809,7 +814,12 @@ async function viewEvent(id){
       <form id="salesForm">
         <div class="grid2">${SALE_METHODS.map(([k,l]) => `<div><label>${l}</label><input name="${k}" type="number" step="0.01" min="0" inputmode="decimal" placeholder="$" value="${sales[k]!=null&&sales[k]!==''?esc(sales[k]):''}"/></div>`).join('')}</div>
         <div class="between" style="margin:.5rem 0"><span class="small muted">Total sales</span><b id="salesTotal">${money2(salesTotal(e))}</b></div>
-        <button class="btn sand sm" type="submit">${hasSales(e)?'Update sales':'Save sales'}</button>
+        <div class="tiny muted" style="margin:.9rem 0 .2rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase">Products sold</div>
+        <div id="tally"></div>
+        <div class="row" style="gap:.4rem;margin-top:.45rem"><input id="newProduct" placeholder="Add another product…" style="flex:1"/><button type="button" class="btn soft sm" id="addProduct">Add</button></div>
+        <input type="hidden" name="items" id="fItems" value="${esc(JSON.stringify(salesItems(e)))}"/>
+        <label>Notes to look back on</label><textarea name="notes" placeholder="What sold, what didn't, the crowd, the weather, your booth spot, would you do it again…">${esc(sales.notes||'')}</textarea>
+        <div class="row wrap" style="margin-top:.6rem"><button class="btn sand sm" type="submit">${salesAny(e)?'Update market':'Save market'}</button><a class="btn soft sm" href="#/markets">View past markets</a></div>
       </form>
       ${hasSales(e)?`<div class="summary" style="margin-top:.7rem">
         <div class="srow"><span>Sales</span><b>${money2(salesTotal(e))}</b></div>
@@ -1008,6 +1018,50 @@ function viewClients(){
 }
 
 /* ---------- MONEY ---------- */
+/* ---------- past markets: every pop-up in one place, by date / location / organizer ---------- */
+function viewMarkets(q){
+  const today = todayISO();
+  const all = S.events.filter(e => isMarket(e) && isActive(e));
+  const past = all.filter(e => e.status === 'done' || (e.event_date && e.event_date < today)).sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''));
+  const upcoming = all.filter(e => !past.includes(e)).sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''));
+  const by = ['location', 'organizer'].includes(q.by) ? q.by : 'date';
+  const spendBy = S._spendByEvent || {};
+  const sum = list => list.reduce((t, e) => t + salesTotal(e), 0);
+  const tot = sum(past), cost = past.reduce((t, e) => t + num(spendBy[e.id]), 0), withSales = past.filter(hasSales);
+  const best = withSales.slice().sort((a, b) => salesTotal(b) - salesTotal(a))[0];
+  const prod = {}; past.forEach(e => Object.entries(salesItems(e)).forEach(([n, qn]) => { prod[n] = (prod[n] || 0) + num(qn); }));
+  const prodList = Object.entries(prod).sort((a, b) => b[1] - a[1]);
+  const meth = SALE_METHODS.map(([k, l]) => [l, past.reduce((t, e) => t + (hasSales(e) ? num(e.sales[k]) : 0), 0)]).filter(([, v]) => v > 0);
+  const keyOf = e => by === 'location' ? ((e.location || '').trim() || 'No location given') : by === 'organizer' ? ((e.client_name || '').trim() || 'No organizer') : monthLabel(monthKey(e.event_date));
+  const groups = new Map(); past.forEach(e => { const k = keyOf(e); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+  const glist = [...groups.entries()]; if(by !== 'date') glist.sort((a, b) => sum(b[1]) - sum(a[1]));
+  const row = e => `<a class="card tap ev" href="#/event/${e.id}">
+    <div class="between"><span class="when">${fmtDate(e.event_date)}${e.event_time ? ' · ' + fmtTime(e.event_time) : ''}</span>${hasSales(e) ? `<span class="money">${money(salesTotal(e))}</span>` : '<span class="tiny muted">no sales entered</span>'}</div>
+    <div class="name">${esc(e.client_name)}</div>
+    <div class="meta">${esc(e.location || '')}${e.experience ? ' · ' + esc(e.experience) : ''}${hasSales(e) ? ' · profit ' + money2(salesTotal(e) - num(spendBy[e.id])) : ''}</div>
+    ${Object.keys(salesItems(e)).length ? `<div class="tiny muted" style="margin-top:.3rem">${Object.entries(salesItems(e)).map(([n, qn]) => qn + ' ' + esc(n)).join(' · ')}</div>` : ''}
+    ${e.sales && e.sales.notes ? `<div class="small" style="margin-top:.35rem;white-space:pre-wrap">${esc(e.sales.notes)}</div>` : ''}
+  </a>`;
+  return `
+    <span class="eyebrow">Markets</span>
+    <div class="between"><h1 style="margin:0">Past markets</h1><div class="seg"><a class="${by === 'date' ? 'on' : ''}" href="#/markets?by=date">Date</a><a class="${by === 'location' ? 'on' : ''}" href="#/markets?by=location">Location</a><a class="${by === 'organizer' ? 'on' : ''}" href="#/markets?by=organizer">Organizer</a></div></div>
+    <div class="stats" style="margin-top:.8rem">
+      <div class="stat cool"><div class="n">${past.length}</div><div class="l">markets</div></div>
+      <div class="stat"><div class="n">${money(tot)}</div><div class="l">total sales</div></div>
+      <div class="stat warm"><div class="n">${money(withSales.length ? tot / withSales.length : 0)}</div><div class="l">avg per market</div></div>
+      <div class="stat"><div class="n ${tot - cost >= 0 ? 'pos' : 'neg'}">${money(tot - cost)}</div><div class="l">profit</div></div>
+    </div>
+    ${best ? `<p class="tiny muted" style="margin:.4rem 0 0">Best day so far: <a href="#/event/${best.id}">${esc(best.client_name)}</a>, ${fmtDate(best.event_date)} — ${money(salesTotal(best))}</p>` : ''}
+    ${prodList.length || meth.length ? `<div class="card mt">
+      ${prodList.length ? `<h3>Products sold</h3><ul class="list">${prodList.map(([n, qn]) => `<li><span class="grow small">${esc(n)}</span><b>${qn}</b></li>`).join('')}</ul>` : ''}
+      ${meth.length ? `<div class="tiny muted" style="margin-top:.5rem">By payment: ${meth.map(([l, v]) => l + ' ' + money(v)).join(' · ')}</div>` : ''}
+    </div>` : ''}
+    ${past.length ? glist.map(([k, list]) => `<h2 class="sec">${esc(k)} <span class="muted" style="font-weight:500">· ${list.length} market${list.length === 1 ? '' : 's'}${by !== 'date' ? ' · ' + money(sum(list)) : ''}</span></h2>${list.map(row).join('')}`).join('')
+      : `<div class="card empty mt"><span class="hand">no markets yet</span>Events with the occasion "Pop-Up / Market" show up here once they've happened.</div>`}
+    ${upcoming.length ? `<h2 class="sec">Coming up</h2>${upcoming.map(eventCard).join('')}` : ''}
+  `;
+}
+
 function viewMoney(q){
   const mk = q.m || monthKey(todayISO());
   const [y,m] = mk.split('-').map(Number);
@@ -1041,7 +1095,7 @@ function viewMoney(q){
         : `<div class="empty"><span class="hand">no booked events this month</span></div>`}
     </div>
     <div class="card">
-      <h3>All time</h3>
+      <div class="between"><h3>All time</h3><a class="btn soft sm" href="#/markets">Past markets</a></div>
       <div class="between small"><span class="muted">Revenue (agreed + market sales)</span><b>${money(allRev)}</b></div>
       ${mAll.length ? methodLine(mAll, evs.reduce((t,e) => t + salesTotal(e), 0)) : ''}
       <div class="between small"><span class="muted">True cost (supplies + shipping/tax)</span><b>${money2(allSpend)}</b></div>
@@ -1221,6 +1275,7 @@ function viewSettings(){
         <label>Your name</label><input name="ownerName" value="${esc(s.ownerName)}"/>
         <label>Default extra-guest rate (a starting point — every event can be priced its own way)</label><input name="extraGuestRate" type="number" min="0" step="1" value="${esc(s.extraGuestRate)}"/>
         <label>Target profit margin % (starting point for supply hunts)</label><input name="targetMargin" type="number" min="0" max="100" step="1" value="${esc(s.targetMargin ?? 70)}"/>
+        <label>Market products (one per line — the tally on every market event)</label><textarea name="marketProducts">${esc((s.marketProducts||[]).join('\n'))}</textarea>
       </div>
       <div class="card">
         <h3>Price list</h3><p class="tiny muted">Base price and how many guests it includes. Feeds the quote helper.</p>
@@ -1460,10 +1515,25 @@ function bind(r){
   if(sf0){
     const tot = () => { $('#salesTotal').textContent = money2(SALE_METHODS.reduce((t,[k]) => t + num(sf0.elements[k].value), 0)); };
     sf0.addEventListener('input', tot);
+    // product tally: her product list from Settings, plus anything already counted on this event, plus anything she adds here
+    const fItems = $('#fItems'), tally = $('#tally'); let items = {}; try { items = JSON.parse(fItems.value || '{}') || {}; } catch(e){ items = {}; }
+    const products = () => { const base = S.settings.marketProducts || []; return base.concat(Object.keys(items).filter(n => !base.includes(n))); };
+    const drawTally = () => { tally.innerHTML = products().map(n => `<div class="tally"><span class="grow">${esc(n)}</span><button type="button" class="tb" data-n="${esc(n)}" data-d="-1" aria-label="one less">−</button><input type="number" min="0" step="1" inputmode="numeric" data-n="${esc(n)}" value="${items[n] || ''}" placeholder="0"/><button type="button" class="tb" data-n="${esc(n)}" data-d="1" aria-label="one more">+</button></div>`).join(''); fItems.value = JSON.stringify(items); };
+    tally.addEventListener('click', ev => { const b = ev.target.closest('.tb'); if(!b) return; const n = b.dataset.n, v = Math.max(0, num(items[n]) + Number(b.dataset.d)); if(v) items[n] = v; else delete items[n]; drawTally(); });
+    tally.addEventListener('input', ev => { const i = ev.target; if(!i.dataset.n) return; const v = parseInt(i.value, 10); if(v > 0) items[i.dataset.n] = v; else delete items[i.dataset.n]; fItems.value = JSON.stringify(items); });
+    $('#addProduct').onclick = () => { const inp = $('#newProduct'), n = inp.value.trim(); if(!n) return; if(!products().includes(n)) items[n] = items[n] || 0; inp.value = ''; drawTally(); const last = tally.querySelector(`input[data-n="${CSS.escape(n)}"]`); if(last) last.focus(); };
+    $('#newProduct').addEventListener('keydown', ev => { if(ev.key === 'Enter'){ ev.preventDefault(); $('#addProduct').click(); } });
+    drawTally();
     sf0.onsubmit = async ev => { ev.preventDefault(); const btn = sf0.querySelector('button[type=submit]'); if(btn.disabled) return; btn.disabled = true;
       const sales = {}; SALE_METHODS.forEach(([k]) => { const v = sf0.elements[k].value; sales[k] = v === '' ? null : num(v); });
-      const any = SALE_METHODS.some(([k]) => sales[k] != null);
-      try { await S.db.updateSales(r.id, any ? sales : null); toast(any ? 'Sales saved' : 'Sales cleared'); render(); } catch(err){ btn.disabled = false; alert('Could not save: ' + (err.message||err)); } };
+      const counted = {}; Object.entries(items).forEach(([n, q]) => { if(num(q) > 0) counted[n] = num(q); }); if(Object.keys(counted).length) sales.items = counted;
+      const notes = sf0.elements.notes.value.trim(); if(notes) sales.notes = notes;
+      const any = SALE_METHODS.some(([k]) => sales[k] != null) || sales.items || sales.notes;
+      try {
+        const base = S.settings.marketProducts || [], fresh = Object.keys(items).filter(n => !base.includes(n)); // a product she added here is offered next time too
+        if(fresh.length){ const st = JSON.parse(JSON.stringify(S.settings)); st.marketProducts = base.concat(fresh); await S.db.saveSettings(st); S.settings = st; }
+        await S.db.updateSales(r.id, any ? sales : null); toast(any ? 'Market saved' : 'Market cleared'); render();
+      } catch(err){ btn.disabled = false; alert('Could not save: ' + (err.message||err)); } };
   }
 
   // expense form
@@ -1569,6 +1639,7 @@ function bind(r){
   if(sf) sf.onsubmit = async e => {
     e.preventDefault(); clearDraft('sss_draft_settings'); const f = new FormData(sf); const s = JSON.parse(JSON.stringify(S.settings));
     s.ownerName = f.get('ownerName').trim() || 'there'; s.extraGuestRate = num(f.get('extraGuestRate')); s.targetMargin = f.get('targetMargin') === '' ? 70 : num(f.get('targetMargin'));
+    s.marketProducts = (f.get('marketProducts')||'').split('\n').map(x => x.trim()).filter(Boolean);
     s.experiences = s.experiences.map((x,i) => ({ name: (f.get('exp_name_'+i)||x.name).trim(), price: num(f.get('exp_price_'+i)), included: parseInt(f.get('exp_inc_'+i)||0,10) }));
     const packing = {}; Object.keys(s.packing).forEach(k => { packing[k] = (f.get('pack_'+k)||'').split('\n').map(x => x.trim()).filter(Boolean); });
     s.experiences.forEach(x => { if(!(x.name in packing)) packing[x.name] = []; }); s.packing = packing;
