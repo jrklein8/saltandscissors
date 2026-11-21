@@ -333,6 +333,21 @@
     text-shadow:0 2px 8px rgba(0,0,0,.55);opacity:0;transition:opacity .3s;
   }
   .masonry figure:hover::after{opacity:1}
+  .gal-count{display:none}
+  /* phones: one swipeable row instead of a very long column */
+  @media(max-width:560px){
+    .masonry{
+      columns:auto;display:flex;gap:.8rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;
+      margin-inline:-1.25rem;padding:0 1.25rem .4rem;scroll-padding-inline:1.25rem;
+    }
+    .masonry::-webkit-scrollbar{display:none}
+    .masonry figure{flex:0 0 80%;aspect-ratio:3/4;margin:0;scroll-snap-align:center}
+    .masonry img{height:100%;object-fit:cover}
+    .masonry figure:hover img{transform:none}
+    .masonry figure::after{opacity:1}
+    .gal-count{display:block;text-align:center;font-family:var(--hand);font-size:1.35rem;color:var(--sand);margin-top:.5rem;min-height:1.6em}
+  }
 
   .lightbox{position:fixed;inset:0;z-index:300;background:rgba(46,56,55,.93);display:none;align-items:center;justify-content:center;padding:2rem}
   .lightbox.open{display:flex}
@@ -856,6 +871,7 @@
       <figure data-cat="sensory" data-label="finishing touch"><img src="assets/img/sensory-4.jpg" width="1080" height="1350" loading="lazy" alt="Adding a custom label to a sensory scene"/></figure>
       <figure data-cat="slime" data-label="squish tested"><img src="assets/img/slime-5.jpg" width="956" height="1275" loading="lazy" alt="Slime play"/></figure>
     </div>
+    <div class="gal-count" id="galCount" aria-live="polite"></div>
   </div>
 </section>
 
@@ -1102,10 +1118,11 @@
   }), {rootMargin:'-40% 0px -55% 0px'});
   document.querySelectorAll('section[id]').forEach(s => spy.observe(s));
 
-  // reveal
+  // reveal — fires as soon as an element's edge is a little inside the viewport. (A percent-visible threshold
+  // never triggers for something much taller than the screen, like the one-column gallery on a phone.)
   const io = new IntersectionObserver(es => es.forEach(e => {
     if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
-  }), {threshold:.12});
+  }), {threshold:0, rootMargin:'0px 0px -8% 0px'});
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
   // gallery filter
@@ -1115,6 +1132,7 @@
     b.classList.add('on');
     const f = b.dataset.f;
     figs.forEach(fig => fig.classList.toggle('hide', f !== 'all' && fig.dataset.cat !== f));
+    strip.scrollLeft = 0; countNow();
   }));
 
   // lightbox with prev/next over currently visible set
@@ -1122,6 +1140,20 @@
   const lbImg = lb.querySelector('img');
   let cur = 0;
   const visible = () => figs.filter(f => !f.classList.contains('hide'));
+
+  // phone gallery swipe strip — keep the "3 / 22" counter in step with the photo nearest the middle
+  const strip = document.getElementById('masonry'), galCount = document.getElementById('galCount');
+  function countNow(){
+    if(getComputedStyle(strip).display !== 'flex'){ galCount.textContent = ''; return; }
+    const v = visible(); if(!v.length){ galCount.textContent = ''; return; }
+    const box = strip.getBoundingClientRect(), mid = box.left + box.width / 2; let best = 0, bd = Infinity;
+    v.forEach((f, i) => { const r = f.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - mid); if(d < bd){ bd = d; best = i; } });
+    galCount.textContent = (best + 1) + ' / ' + v.length;
+  }
+  let countRaf = 0;
+  strip.addEventListener('scroll', () => { cancelAnimationFrame(countRaf); countRaf = requestAnimationFrame(countNow); }, {passive:true});
+  addEventListener('resize', countNow);
+  countNow();
   function show(i){
     const v = visible();
     cur = (i + v.length) % v.length;
