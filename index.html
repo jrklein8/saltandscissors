@@ -12,7 +12,7 @@
   gtag('config', 'G-K5MRFXG4KS');
 </script>
 <title>Salt &amp; Scissors Creative Co. — Coastal. Creative. Curated. · Wilmington, NC</title>
-<meta name="description" content="Curated craft experiences for kids and adults — Coastal Creamery sensory sundaes, charm bar, canvas & patch parties. Parties, pop-ups and workshops in Wilmington, NC + beyond." />
+<meta name="description" content="Curated craft experiences for kids and adults — slime parties, DIY squishies, charm bar, sensory scenes, canvas & patch parties. Parties, pop-ups and workshops in Wilmington, NC + beyond." />
 <link rel="icon" href="assets/img/logo-full.png?v=2" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -212,9 +212,16 @@
   }
 
   /* experience nav cards */
-  .exp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem}
-  @media(max-width:860px){.exp-cards{grid-template-columns:1fr 1fr}}
-  @media(max-width:560px){.exp-cards{grid-template-columns:1fr}}
+  /* seven cards: two wide, three across, two wide */
+  .exp-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:1.2rem;margin-bottom:1.5rem}
+  .exp-cards>.exp-card{grid-column:span 2}
+  .exp-cards>.exp-card:nth-child(-n+2),.exp-cards>.exp-card:nth-last-child(-n+2){grid-column:span 3}
+  @media(max-width:860px){
+    .exp-cards{grid-template-columns:1fr 1fr}
+    .exp-cards>.exp-card,.exp-cards>.exp-card:nth-child(-n+2),.exp-cards>.exp-card:nth-last-child(-n+2){grid-column:auto}
+    .exp-cards>.exp-card:last-child{grid-column:1/-1}
+  }
+  @media(max-width:560px){.exp-cards{grid-template-columns:1fr}.exp-cards>.exp-card:last-child{grid-column:auto}}
   .exp-card{background:#fff;border-radius:var(--r-md);padding:1.7rem 1.5rem 1.5rem;box-shadow:0 16px 36px -28px rgba(var(--shadow),.6);display:block;transition:transform .3s;position:relative}
   .exp-card:hover{transform:translateY(-6px) rotate(-.4deg)}
   .exp-card .em{font-family:var(--disp);font-style:italic;font-size:1rem;color:var(--terra);letter-spacing:.06em;margin-bottom:.6rem;display:block}
@@ -338,8 +345,17 @@
 
   /* ============ PACKAGES ============ */
   .pack-note{display:inline-block;font-family:var(--hand);font-size:1.3rem;color:var(--terra);transform:rotate(-2deg);margin-bottom:1rem}
-  .packs{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem;align-items:stretch}
-  @media(max-width:880px){.packs{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
+  /* seven cards: two wide, three across, two wide */
+  .packs{display:grid;grid-template-columns:repeat(6,1fr);gap:1.6rem;align-items:stretch}
+  .packs>.pack{grid-column:span 2}
+  .packs>.pack:nth-child(-n+2),.packs>.pack:nth-last-child(-n+2){grid-column:span 3}
+  @media(max-width:880px){
+    .packs{grid-template-columns:1fr;max-width:460px;margin-inline:auto}
+    .packs>.pack,.packs>.pack:nth-child(-n+2),.packs>.pack:nth-last-child(-n+2){grid-column:auto}
+  }
+  .pack .pdesc{font-size:.94rem;color:var(--ink-soft);margin-top:1rem}
+  .pack .upsell{font-family:var(--hand);font-size:1.2rem;line-height:1.25;color:var(--clay);margin:-.9rem 0 1.5rem}
+  .exp-row p.exp-sub{font-family:var(--disp);font-style:italic;font-size:1.08rem;color:var(--sand);margin-bottom:.7rem}
   .pack{
     background:#fff;border-radius:var(--r-lg);padding:2.2rem 2rem;position:relative;
     border:1px solid rgba(var(--shadow),.1);box-shadow:0 20px 44px -30px rgba(var(--shadow),.55);
@@ -358,6 +374,7 @@
   .pack.feat h3,.pack.feat .price{color:#fff}
   .pack.feat .for{color:var(--sand)}
   .pack.feat li{color:rgba(254,255,255,.85)}
+  .pack.feat .price small{color:rgba(254,255,255,.8)}
   .pack.feat li::before{color:var(--sand)}
   .pack .ribbon{
     position:absolute;top:-15px;left:50%;transform:translateX(-50%) rotate(-2deg);
@@ -553,8 +570,8 @@
 <!-- MARQUEE -->
 <div class="marquee" aria-hidden="true">
   <div class="marquee-track">
-    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
-    <span>Sensory Sundaes</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
+    <span>Slime Parties</span><span>DIY Squishies</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
+    <span>Slime Parties</span><span>DIY Squishies</span><span>Charm Bar</span><span>Canvas Parties</span><span>Patch Parties</span><span>Sensory Scenes</span><span>Pop-Ups &amp; Workshops</span>
   </div>
 </div>
 
@@ -568,27 +585,29 @@
     </div>
 
     <div class="exp-cards reveal">
-      <a class="exp-card" href="#exp-sundaes"><span class="em">No. 01</span><h3>Coastal Creamery Sensory Sundaes</h3><p>Our signature sensory sundae experience featuring custom slime or play dough creations.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-charm"><span class="em">No. 02</span><h3>Charm Bar Experience</h3><p>Design one-of-a-kind keepsakes with curated charms, chains, and accessories.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-scenes"><span class="em">No. 03</span><h3>Sensory Scenes</h3><p>Create imaginative themed worlds with your choice of sensory base, curated accessories, and endless creativity.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-canvas"><span class="em">No. 04</span><h3>Canvas Painting Party</h3><p>Paint, create, and celebrate with a custom canvas experience.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-patch"><span class="em">No. 05</span><h3>DIY Patch Party</h3><p>Customize hats and accessories with fun patches and creative flair.</p><span class="go">explore ↓</span></a>
-      <a class="exp-card" href="#exp-custom"><span class="em">No. 06</span><h3>Custom Creative Experience</h3><p>Dream it, and we'll design a one-of-a-kind creative experience just for your celebration.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-slime"><span class="em">No. 01</span><h3>Slime Parties</h3><p>Coastal Creamery slime sundaes, cloud slime, and themed slime experiences.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-squishy"><span class="em">No. 02</span><h3>DIY Squishy Parties</h3><p>Make your own slime-filled squishy, including dumplings, and decorate its take-home case.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-charm"><span class="em">No. 03</span><h3>Charm Bar Experience</h3><p>Design one-of-a-kind keepsakes with curated charms, chains, and accessories.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-scenes"><span class="em">No. 04</span><h3>Sensory Scenes</h3><p>Create imaginative themed worlds with your choice of sensory base, curated accessories, and endless creativity.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-canvas"><span class="em">No. 05</span><h3>Canvas Painting Party</h3><p>Paint, create, and celebrate with a custom canvas experience.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-patch"><span class="em">No. 06</span><h3>DIY Patch Party</h3><p>Customize hats and accessories with fun patches and creative flair.</p><span class="go">explore ↓</span></a>
+      <a class="exp-card" href="#exp-custom"><span class="em">No. 07</span><h3>Custom Creative Experience</h3><p>Dream it, and we'll design a one-of-a-kind creative experience just for your celebration.</p><span class="go">explore ↓</span></a>
     </div>
 
-    <div class="exp-row" id="exp-sundaes">
+    <div class="exp-row" id="exp-slime">
       <div class="exp-media reveal">
         <div class="stack">
+          <img src="assets/img/slime-2.jpg" loading="lazy" alt="Sensory sundae slime cup"/>
           <img src="assets/img/slime-5.jpg" loading="lazy" alt="Slime mixing in progress"/>
           <img src="assets/img/slime-8.jpg" loading="lazy" alt="Finished colorful slime"/>
           <img src="assets/img/slime-1.jpg" loading="lazy" alt="Coastal Creamery sensory sundae with cherry"/>
-          <img src="assets/img/slime-2.jpg" loading="lazy" alt="Sensory sundae slime cup"/>
           <img src="assets/img/slime-7.jpg" loading="lazy" alt="Slime sundae creation"/>
         </div>
       </div>
       <div class="reveal d1">
         <div class="exp-num">No. 01 — Our Signature Experience</div>
-        <h3>Coastal Creamery</h3>
+        <h3>Slime Parties</h3>
+        <p class="exp-sub">Coastal Creamery slime sundaes, cloud slime, and themed slime experiences</p>
         <p>Meet our signature sensory experience! Guests create their own themed slime, then personalize it with colors, drizzles, sprinkles, charms, fun mix-ins, and a decorated take-home container. Every creation is customized to match your celebration, making it completely one of a kind.</p>
         <p style="margin-top:.8rem">Prefer play dough? Play dough is available upon request for younger guests or slime-free celebrations.</p>
         <div class="chips">
@@ -599,7 +618,35 @@
         </div>
         <div class="exp-foot">
           <span class="ages">&#x270F;&#xFE0E; Ages 4+</span>
-          <a class="invest" href="#price-sundaes"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+          <a class="invest" href="#price-slime"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-row" id="exp-squishy">
+      <div class="exp-media reveal">
+        <div class="stack">
+          <img src="assets/img/squishy-4.jpg" loading="lazy" alt="Dumpling squishy in its take-home case"/>
+          <img src="assets/img/squishy-1.jpg" loading="lazy" alt="Squeezing a finished slime-filled squishy"/>
+          <img src="assets/img/squishy-3.jpg" loading="lazy" alt="Decorate your basket station with gems and stickers"/>
+          <img src="assets/img/squishy-2.jpg" loading="lazy" alt="Customize your dumpling squishy station"/>
+          <img src="assets/img/squishy-5.jpg" loading="lazy" alt="Slime station set up for a party"/>
+        </div>
+      </div>
+      <div class="reveal d1">
+        <div class="exp-num">No. 02 — squish, fill &amp; decorate</div>
+        <h3>DIY Squishy Parties</h3>
+        <p>Customize premade slime with your choice of colors, glitter, and fun add-ins, then fill your squishy and decorate its take-home case!</p>
+        <p style="margin-top:.8rem">Want to make the slime from scratch, too? Ask about upgrading your experience!</p>
+        <div class="chips">
+          <span class="chip hl">Fill your own squishy</span>
+          <span class="chip">Dumplings &amp; other styles</span>
+          <span class="chip">Colors, glitter &amp; add-ins</span>
+          <span class="chip">Decorated take-home case</span>
+        </div>
+        <div class="exp-foot">
+          <span class="ages">&#x270F;&#xFE0E; squish it, fill it, take it home</span>
+          <a class="invest" href="#price-squishy"><span class="lbl">View Investment</span><span class="arrow">↓</span></a>
         </div>
       </div>
     </div>
@@ -615,7 +662,7 @@
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 02 — endless customization</div>
+        <div class="exp-num">No. 03 — endless customization</div>
         <h3>The Charm Bar Experience</h3>
         <p>A fully hosted charm bar featuring curated charms, chains, and accessories for creating personalized keepsakes. From bracelets and necklaces to keychains and more, every creation is one of a kind.</p>
         <div class="chips">
@@ -633,13 +680,17 @@
 
     <div class="exp-row" id="exp-scenes">
       <div class="exp-media reveal">
-        <div class="stack two">
-          <img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean Explorer kit with beach sand and shells"/>
+        <div class="stack">
           <img src="assets/img/sensory-2.jpg" loading="lazy" alt="Sensory play dough jars"/>
+          <img src="assets/img/sensory-5.jpg" loading="lazy" alt="Mermaid lagoon sensory scene in a take-home bucket"/>
+          <img src="assets/img/sensory-6.jpg" loading="lazy" alt="Decorated sensory scene bucket"/>
+          <img src="assets/img/sensory-3.jpg" loading="lazy" alt="Choosing treasures for a sensory scene"/>
+          <img src="assets/img/sensory-4.jpg" loading="lazy" alt="Adding a custom label to a sensory scene"/>
+          <img src="assets/img/sensory-1.jpg" loading="lazy" alt="Ocean Explorer kit with beach sand and shells"/>
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 03 — imagination stations</div>
+        <div class="exp-num">No. 04 — imagination stations</div>
         <h3>Sensory Scenes</h3>
         <p>Create imaginative themed worlds with your choice of sensory base, curated accessories, and endless creativity. Every child builds a one-of-a-kind sensory scene to take home for continued imaginative play. Fully hosted, mess handled.</p>
         <div class="chips">
@@ -662,7 +713,7 @@
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 04 — paint &amp; celebrate</div>
+        <div class="exp-num">No. 05 — paint &amp; celebrate</div>
         <h3>Canvas Painting Party</h3>
         <p>A fully hosted canvas painting party customized to your theme. We provide everything needed for guests to paint, create, and celebrate with a masterpiece they'll be proud to take home.</p>
         <div class="chips">
@@ -685,7 +736,7 @@
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 05 — wear your art</div>
+        <div class="exp-num">No. 06 — wear your art</div>
         <h3>DIY Patch Party</h3>
         <p>A fully hosted patch party customized to your theme. Guests personalize curated accessories with fun patches to create one-of-a-kind keepsakes they'll love to wear and use. Supplies, setup, and cleanup included.</p>
         <div class="chips">
@@ -703,12 +754,15 @@
 
     <div class="exp-row" id="exp-custom">
       <div class="exp-media reveal">
-        <div class="art-wrap">
-          <figure class="polaroid art-frame"><div class="ph" style="aspect-ratio:4/5"><img src="assets/img/custom-1.jpg" loading="lazy" alt="Create-your-own fairy garden table with terracotta pots and tiny decorations"/></div><figcaption>dream it up!</figcaption></figure>
+        <div class="stack">
+          <img src="assets/img/custom-5.jpg" loading="lazy" alt="Finished highland cow fairy garden"/>
+          <img src="assets/img/custom-2.jpg" loading="lazy" alt="Make-your-own highland cow garden party table"/>
+          <img src="assets/img/custom-3.jpg" loading="lazy" alt="Guest holding her finished garden"/>
+          <img src="assets/img/custom-4.jpg" loading="lazy" alt="Garden party table ready for guests"/>
         </div>
       </div>
       <div class="reveal d1">
-        <div class="exp-num">No. 06 — Dream It. We'll Create It.</div>
+        <div class="exp-num">No. 07 — Dream It. We'll Create It.</div>
         <h3>Custom Creative Experience</h3>
         <p>Dream it, and we'll design a one-of-a-kind creative experience just for your celebration. From decorating mermaid treasure chests and building fairy gardens to creating terrariums, tie-dye projects, and other custom crafts, every experience is designed just for you.</p>
         <div class="chips">
@@ -772,22 +826,34 @@
     </div>
     <div class="filters reveal">
       <button class="fbtn on" data-f="all">All</button>
-      <button class="fbtn" data-f="slime">Sensory Sundaes</button>
+      <button class="fbtn" data-f="slime">Slime</button>
+      <button class="fbtn" data-f="squishy">Squishies</button>
       <button class="fbtn" data-f="charm">Charm Bar</button>
       <button class="fbtn" data-f="sensory">Sensory Scenes</button>
+      <button class="fbtn" data-f="custom">Custom</button>
     </div>
     <div class="masonry reveal" id="masonry">
       <figure data-cat="slime" data-label="sundae slime"><img src="assets/img/slime-1.jpg" width="1125" height="1500" loading="lazy" alt="Sensory sundae slime"/></figure>
+      <figure data-cat="squishy" data-label="dumpling station"><img src="assets/img/squishy-2.jpg" width="1064" height="1478" loading="lazy" alt="Customize your dumpling squishy station"/></figure>
       <figure data-cat="charm" data-label="charm bar"><img src="assets/img/charm-5.jpg" width="1125" height="1500" loading="lazy" alt="Charm bracelet close up"/></figure>
+      <figure data-cat="sensory" data-label="mermaid lagoon"><img src="assets/img/sensory-5.jpg" width="1080" height="1350" loading="lazy" alt="Mermaid lagoon sensory scene"/></figure>
       <figure data-cat="sensory" data-label="ocean explorer"><img src="assets/img/sensory-2.jpg" width="1125" height="1500" loading="lazy" alt="Sensory play jars"/></figure>
       <figure data-cat="slime" data-label="slime magic"><img src="assets/img/slime-8.jpg" width="970" height="1293" loading="lazy" alt="Colorful slime"/></figure>
+      <figure data-cat="custom" data-label="tiny garden"><img src="assets/img/custom-5.jpg" width="1280" height="1229" loading="lazy" alt="Finished highland cow fairy garden"/></figure>
       <figure data-cat="charm" data-label="bff bracelets"><img src="assets/img/charm-7.jpg" width="1098" height="1500" loading="lazy" alt="Finished charm bracelet"/></figure>
+      <figure data-cat="squishy" data-label="so squishy"><img src="assets/img/squishy-1.jpg" width="1086" height="1448" loading="lazy" alt="Squeezing a slime-filled squishy"/></figure>
       <figure data-cat="slime" data-label="mix-ins"><img src="assets/img/slime-3.jpg" width="941" height="1255" loading="lazy" alt="Slime toppings"/></figure>
+      <figure data-cat="sensory" data-label="take-home bucket"><img src="assets/img/sensory-6.jpg" width="1080" height="1350" loading="lazy" alt="Decorated sensory scene bucket"/></figure>
       <figure data-cat="charm" data-label="the workshop"><img src="assets/img/charm-4.jpg" width="1125" height="1500" loading="lazy" alt="Bracelet making"/></figure>
+      <figure data-cat="squishy" data-label="decorate your basket"><img src="assets/img/squishy-3.jpg" width="1020" height="1500" loading="lazy" alt="Gems and stickers for decorating"/></figure>
       <figure data-cat="slime" data-label="fresh batch"><img src="assets/img/slime-6.jpg" width="984" height="1312" loading="lazy" alt="Slime creation"/></figure>
+      <figure data-cat="custom" data-label="garden party"><img src="assets/img/custom-2.jpg" width="1029" height="1155" loading="lazy" alt="Make-your-own garden party table"/></figure>
       <figure data-cat="sensory" data-label="beach in a jar"><img src="assets/img/sensory-1.jpg" width="1125" height="1500" loading="lazy" alt="Ocean explorer kit"/></figure>
+      <figure data-cat="sensory" data-label="pick your treasures"><img src="assets/img/sensory-3.jpg" width="990" height="1500" loading="lazy" alt="Choosing treasures for a sensory scene"/></figure>
       <figure data-cat="slime" data-label="cherry on top"><img src="assets/img/slime-9.jpg" width="941" height="1255" loading="lazy" alt="Slime sundae"/></figure>
+      <figure data-cat="custom" data-label="made it myself"><img src="assets/img/custom-3.jpg" width="742" height="1004" loading="lazy" alt="Guest holding her finished garden"/></figure>
       <figure data-cat="charm" data-label="every charm"><img src="assets/img/charm-3.jpg" width="1125" height="1500" loading="lazy" alt="Charm supplies"/></figure>
+      <figure data-cat="sensory" data-label="finishing touch"><img src="assets/img/sensory-4.jpg" width="1080" height="1350" loading="lazy" alt="Adding a custom label to a sensory scene"/></figure>
       <figure data-cat="slime" data-label="squish tested"><img src="assets/img/slime-5.jpg" width="956" height="1275" loading="lazy" alt="Slime play"/></figure>
     </div>
   </div>
@@ -801,9 +867,9 @@
       <h2>Creative Experiences for Every Celebration</h2>
     </div>
     <div class="packs">
-      <div class="pack feat reveal" id="price-sundaes">
+      <div class="pack feat reveal" id="price-slime">
         <div class="ribbon">Most Popular</div>
-        <h3>Coastal Creamery</h3>
+        <h3>Slime Parties</h3>
         <div class="for">starting at</div>
         <div class="price">$350 <small>· includes 15 guests</small></div>
         <ul>
@@ -812,9 +878,22 @@
           <li>Perfect for birthdays &amp; celebrations</li>
           <li>Setup, cleanup &amp; all supplies included</li>
         </ul>
-        <a href="#book" class="btn btn-primary" style="background:var(--sand);color:#513a1e">Book Coastal Creamery</a>
+        <a href="#book" class="btn btn-primary" style="background:var(--sand);color:#513a1e">Book a Slime Party</a>
       </div>
-      <div class="pack reveal d1" id="price-canvas">
+      <div class="pack reveal d1" id="price-squishy">
+        <h3>DIY Squishy Parties</h3>
+        <div class="for">starting at</div>
+        <div class="price">$350 <small>· includes up to 15 kids</small></div>
+        <p class="pdesc">Customize premade slime with your choice of colors, glitter, and fun add-ins, then fill your squishy and decorate its take-home case!</p>
+        <ul>
+          <li>90-minute hosted experience</li>
+          <li>All supplies, setup &amp; cleanup included</li>
+          <li>Dumplings and other squishy styles available</li>
+        </ul>
+        <p class="upsell">Want to make the slime from scratch, too? Ask about upgrading your experience!</p>
+        <a href="#book" class="btn btn-ghost">Book a Squishy Party</a>
+      </div>
+      <div class="pack reveal" id="price-canvas">
         <h3>Canvas Painting</h3>
         <div class="for">starting at</div>
         <div class="price">$225 <small>· includes 10 guests</small></div>
@@ -826,7 +905,7 @@
         </ul>
         <a href="#book" class="btn btn-ghost">Book Canvas Party</a>
       </div>
-      <div class="pack reveal d2" id="price-charm">
+      <div class="pack reveal d1" id="price-charm">
         <h3>Charm Bar</h3>
         <div class="for">starting at</div>
         <div class="price">$325 <small>· includes 15 guests</small></div>
@@ -838,10 +917,10 @@
         </ul>
         <a href="#book" class="btn btn-ghost">Book Charm Bar</a>
       </div>
-      <div class="pack reveal" id="price-scenes">
+      <div class="pack reveal d2" id="price-scenes">
         <h3>Sensory Scenes</h3>
         <div class="for">starting at</div>
-        <div class="price">$275 <small>· includes 10 guests</small></div>
+        <div class="price">$350 <small>· includes up to 15 kids</small></div>
         <ul>
           <li>Build an imaginative themed world</li>
           <li>90-minute hosted experience</li>
@@ -850,7 +929,7 @@
         </ul>
         <a href="#book" class="btn btn-ghost">Book Sensory Scenes</a>
       </div>
-      <div class="pack reveal d1" id="price-patch">
+      <div class="pack reveal" id="price-patch">
         <h3>DIY Patch Party</h3>
         <div class="for">starting at</div>
         <div class="price">$325 <small>· includes 15 guests</small></div>
@@ -862,7 +941,7 @@
         </ul>
         <a href="#book" class="btn btn-ghost">Book Patch Party</a>
       </div>
-      <div class="pack reveal d2" id="price-custom">
+      <div class="pack reveal d1" id="price-custom">
         <h3>Dream It. We'll Create It.</h3>
         <div class="for">let's plan together</div>
         <div class="price" style="font-size:1.8rem">Custom Quote</div>
@@ -919,7 +998,7 @@
       </details>
       <details>
         <summary>Is this just for kids?</summary>
-        <div class="a">Not even close. Sensory sundaes shine for ages 4–12 and sensory scenes for 2–8, but the charm bar and canvas parties are grown-up favorites — girls' nights, showers, team events. Tell us your crowd and we'll tune it to fit.</div>
+        <div class="a">Not even close. Slime parties shine for ages 4–12 and sensory scenes for 2–8, but the charm bar and canvas parties are grown-up favorites — girls' nights, showers, team events. Tell us your crowd and we'll tune it to fit.</div>
       </details>
       <details>
         <summary>Can you prep it for me to host?</summary>
@@ -965,7 +1044,7 @@
             <div class="field"><label for="date">Preferred Event Date</label><input id="date" type="date" required/></div>
             <div class="field"><label for="exp">Experience</label>
               <select id="exp">
-                <option>Coastal Creamery Sensory Sundaes</option><option>Charm Bar Experience</option><option>Sensory Scenes</option>
+                <option>Slime Party</option><option>DIY Squishy Party</option><option>Charm Bar Experience</option><option>Sensory Scenes</option>
                 <option>Canvas Painting Party</option><option>DIY Patch Party</option><option>Custom Creative Experience</option>
                 <option>Help me pick!</option>
               </select>

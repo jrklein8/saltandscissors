@@ -22,14 +22,16 @@ const DEFAULT_SETTINGS = {
   marketProducts: ['Squishies', 'Playdough', 'Signature Sundae', 'Deluxe Sundae'], // the tally on market events
   experiences: [
     { name: 'Coastal Creamery',           price: 350, included: 15 },
+    { name: 'DIY Squishy Parties',        price: 350, included: 15 },
     { name: 'Charm Bar',                  price: 325, included: 15 },
-    { name: 'Sensory Scenes',             price: 275, included: 10 },
+    { name: 'Sensory Scenes',             price: 350, included: 15 },
     { name: 'Canvas Painting Party',      price: 225, included: 10 },
     { name: 'DIY Patch Party',            price: 325, included: 15 },
     { name: 'Custom Creative Experience', price: 0,   included: 0  },
   ],
   packing: {
     'Coastal Creamery': ['Sundae cups + dome lids','Slime base (clear & white)','Activator','Colors & drizzles','Sprinkles & glitter','Charms & mix-ins','Cherries','Scoops & spoons','Gloves & wipes','Menu / how-to card'],
+    'DIY Squishy Parties': ['Squishy shells (dumplings + other styles)','Premade slime','Colors & glitter','Add-ins','Filling tools','Sealing supplies','Take-home cases','Case decorations (gems & stickers)','Aprons','Station signs','Wipes'],
     'Charm Bar': ['Bracelet & necklace chains','Keychain blanks','Charm trays (sorted)','Jump rings','Pliers (2 sets)','Clasps & extenders','Sizing tape','Mirror','Jewelry gift bags','Display stands'],
     'Sensory Scenes': ['Kinetic sand / play dough','Jars with lids','Themed accessories (shells, figures, gems)','Scoops & tools','Trays','Labels','Wipes'],
     'Canvas Painting Party': ['Mini canvases','Easels','Paint sets','Brushes (assorted)','Water cups','Palettes','Aprons / smocks','Paper towels','Theme reference prints','Drying area plan'],
@@ -381,8 +383,25 @@ async function boot(){
   render();
 }
 
+// Her saved price list replaces the defaults, so a catalog change has to be merged into it — once, and only where she
+// hasn't already made the change herself. v2 (Nov 2026): DIY Squishy Parties added; Sensory Scenes $275/10 -> $350/15.
+async function upgradeCatalog(){
+  if((S.settings.catalogV || 0) >= 2) return;
+  const next = JSON.parse(JSON.stringify(S.settings)), SQ = 'DIY Squishy Parties';
+  if(!next.experiences.some(x => /squish/i.test(x.name))){
+    const i = next.experiences.findIndex(x => /coastal creamery|slime/i.test(x.name));
+    next.experiences.splice(i < 0 ? next.experiences.length : i + 1, 0, { name: SQ, price: 350, included: 15 });
+    if(!next.packing[SQ]){ const packing = {}; Object.keys(next.packing).forEach(k => { if(k === '_always') packing[SQ] = DEFAULT_SETTINGS.packing[SQ].slice(); packing[k] = next.packing[k]; }); if(!packing[SQ]) packing[SQ] = DEFAULT_SETTINGS.packing[SQ].slice(); next.packing = packing; }
+  }
+  const sc = next.experiences.find(x => x.name === 'Sensory Scenes');
+  if(sc && num(sc.price) === 275 && num(sc.included) === 10){ sc.price = 350; sc.included = 15; } // untouched old default only
+  next.catalogV = 2;
+  try { await S.db.saveSettings(next); S.settings = next; } catch(e){ /* not saved — it simply tries again next load */ }
+}
+
 async function refresh(){
   S.settings = await S.db.getSettings();
+  await upgradeCatalog();
   S.events = await S.db.listEvents();
   // true cost per event (supplies counted once + shipping/tax) for Money + exports
   const [all, recs] = await Promise.all([S.db.listExpenses(), S.db.listReceipts()]);
@@ -933,7 +952,7 @@ async function viewEvent(id){
 function viewForm(e, q){
   const s = S.settings; const isNew = !e; e = e || { status: q.status || 'inquiry', source: 'Website form', event_date: /^\d{4}-\d{2}-\d{2}$/.test(q.date || '') ? q.date : '' };
   const opt = (list, v) => list.map(x => `<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
-  const expNames = s.experiences.map(x => x.name);
+  const expNames = s.experiences.map(x => x.name); if(e.experience && !expNames.includes(e.experience)) expNames.push(e.experience);
   return `
     <a class="tiny muted" href="${isNew?'#/events':'#/event/'+e.id}">← back</a>
     <span class="eyebrow">${isNew?'New request':'Edit event'}</span>
@@ -1280,6 +1299,8 @@ function viewSettings(){
       <div class="card">
         <h3>Price list</h3><p class="tiny muted">Base price and how many guests it includes. Feeds the quote helper.</p>
         ${s.experiences.map((x,i)=>`<div class="grid2" style="grid-template-columns:1fr 84px 84px;gap:.4rem;margin-top:.5rem"><input name="exp_name_${i}" value="${esc(x.name)}"/><input name="exp_price_${i}" type="number" min="0" value="${esc(x.price)}" placeholder="$"/><input name="exp_inc_${i}" type="number" min="0" value="${esc(x.included)}" placeholder="guests"/></div>`).join('')}
+        <div class="grid2" style="grid-template-columns:1fr 84px 84px;gap:.4rem;margin-top:.5rem"><input name="exp_name_new" placeholder="Add an experience…"/><input name="exp_price_new" type="number" min="0" placeholder="$"/><input name="exp_inc_new" type="number" min="0" placeholder="guests"/></div>
+        <p class="tiny muted" style="margin:.4rem 0 0">Type a name in the last row and save to add it. It gets its own packing list below.</p>
       </div>
       <div class="card">
         <h3>Packing lists</h3><p class="tiny muted">One item per line. "Always" gets added to every event.</p>
@@ -1641,6 +1662,7 @@ function bind(r){
     s.ownerName = f.get('ownerName').trim() || 'there'; s.extraGuestRate = num(f.get('extraGuestRate')); s.targetMargin = f.get('targetMargin') === '' ? 70 : num(f.get('targetMargin'));
     s.marketProducts = (f.get('marketProducts')||'').split('\n').map(x => x.trim()).filter(Boolean);
     s.experiences = s.experiences.map((x,i) => ({ name: (f.get('exp_name_'+i)||x.name).trim(), price: num(f.get('exp_price_'+i)), included: parseInt(f.get('exp_inc_'+i)||0,10) }));
+    { const nn = (f.get('exp_name_new')||'').trim(); if(nn && !s.experiences.some(x => x.name.toLowerCase() === nn.toLowerCase())) s.experiences.push({ name: nn, price: num(f.get('exp_price_new')), included: parseInt(f.get('exp_inc_new')||0,10) }); }
     const packing = {}; Object.keys(s.packing).forEach(k => { packing[k] = (f.get('pack_'+k)||'').split('\n').map(x => x.trim()).filter(Boolean); });
     s.experiences.forEach(x => { if(!(x.name in packing)) packing[x.name] = []; }); s.packing = packing;
     await S.db.saveSettings(s); toast('Settings saved'); render();
